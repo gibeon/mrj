@@ -136,10 +136,10 @@ public class DB {
 		client = createConnection(host, port);
 	}
 	
-	public void init(){
-        setupKeyspace(client);
-        client.set_keyspace(KEYSPACE);
-        setupTable(client);
+	public void init() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+	        setupKeyspace(client);
+	        client.set_keyspace(KEYSPACE);
+	        setupTable(client);
 	}
 	
 	public Cassandra.Iface getDBClient(){
