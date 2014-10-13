@@ -2,15 +2,13 @@
  * Project Name: mrj-0.1
  * File Name: DB.java
  * @author Gang Wu
- * 2014年10月11日 下午2:39:42
+ * 2014脛锚10脭脗11脠脮 脧脗脦莽2:39:42
  * 
  * Description: 
  * TODO
  */
 package io.cassandra;
 
-
-import WordCount;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Compression;
@@ -155,10 +153,19 @@ public class DB {
 	
 	public static void main(String[] args) {
 		try {
-			DB db = new DB("192.168.57.132", 9160);
+			DB db = new DB("localhost", 9160);
 			db.init();
 		} catch (TTransportException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidRequestException e) {
+			e.printStackTrace();
+		} catch (UnavailableException e) {
+			e.printStackTrace();
+		} catch (TimedOutException e) {
+			e.printStackTrace();
+		} catch (SchemaDisagreementException e) {
+			e.printStackTrace();
+		} catch (TException e) {
 			e.printStackTrace();
 		}
 	}
