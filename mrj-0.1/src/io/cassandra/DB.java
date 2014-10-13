@@ -10,6 +10,8 @@
 package io.cassandra;
 
 
+import WordCount;
+
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -136,6 +138,11 @@ public class DB {
 		client = createConnection(host, port);
 	}
 	
+	public void init(){
+        setupKeyspace(client);
+        client.set_keyspace(KEYSPACE);
+        setupTable(client);
+	}
 	
 	public Cassandra.Iface getDBClient(){
 		return client;
@@ -149,6 +156,7 @@ public class DB {
 	public static void main(String[] args) {
 		try {
 			DB db = new DB("192.168.57.132", 9160);
+			db.init();
 		} catch (TTransportException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
