@@ -10,9 +10,14 @@
 package io.cassandra;
 
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
@@ -146,8 +151,30 @@ public class DB {
 		return client;
 	}
 	
-
 	
+	public void insertResources(long id, String label) throws InvalidRequestException, TException{
+        String query = "INSERT INTO " + COLUMN_FAMILY_RESOURCES +  
+                "(id, label) " +
+                " values (?, ?) ";
+        List<ByteBuffer> args = new ArrayList<ByteBuffer>();
+        args.add(ByteBufferUtil.bytes(id));
+        args.add(ByteBufferUtil.bytes(label));
+        CqlPreparedResult p_result = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
+        CqlResult result = client.execute_prepared_cql3_query(p_result.itemId, args, ConsistencyLevel.ANY);
+        logger.info("Number of results: " + result.getNum());
+	}
+
+	public void insertJustifications(long sub, long pre, long obj, short rule, long var1, long var2, long var3) 
+			throws InvalidRequestException, TException{
+        String query = "INSERT INTO " + COLUMN_FAMILY_JUSTIFICATIONS +  
+                "(id, line) " +
+                " values (?, ?) ";
+        
+        CqlPreparedResult result = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
+        ByteBufferUtil.bytes(rule);
+        
+//		client.execute_prepared_cql3_query(result.itemId, arg1, ConsistencyLevel.ANY);
+	}
 	
 	
 	
@@ -155,6 +182,7 @@ public class DB {
 		try {
 			DB db = new DB("localhost", 9160);
 			db.init();
+			db.insertResources(100, "Hello World!");
 		} catch (TTransportException e) {
 			e.printStackTrace();
 		} catch (InvalidRequestException e) {
