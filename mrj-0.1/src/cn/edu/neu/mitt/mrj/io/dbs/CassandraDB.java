@@ -7,7 +7,7 @@
  * Description: 
  * TODO
  */
-package io.cassandra;
+package cn.edu.neu.mitt.mrj.io.dbs;
 
 
 import java.nio.ByteBuffer;
@@ -40,8 +40,8 @@ import org.slf4j.LoggerFactory;
  * @author gibeo_000
  *
  */
-public class DB {
-    private static final Logger logger = LoggerFactory.getLogger(DB.class);
+public class CassandraDB {
+    private static final Logger logger = LoggerFactory.getLogger(CassandraDB.class);
     public static final String KEYSPACE = "mrjks";	// mr.j keyspace
     public static final String COLUMN_FAMILY_JUSTIFICATIONS = "justifications";	// mr.j keyspace
     public static final String COLUMN_FAMILY_RESOURCES = "resources";	// mr.j keyspace
@@ -132,12 +132,12 @@ public class DB {
     
     
     
-	public DB() throws TTransportException {
+	public CassandraDB() throws TTransportException {
 		client = createConnection();
 	}
 	
 	
-	public DB(String host, Integer port) throws TTransportException {
+	public CassandraDB(String host, Integer port) throws TTransportException {
 		client = createConnection(host, port);
 	}
 	
@@ -180,7 +180,7 @@ public class DB {
 	
 	public static void main(String[] args) {
 		try {
-			DB db = new DB("localhost", 9160);
+			CassandraDB db = new CassandraDB("localhost", 9160);
 			db.init();
 			db.insertResources(100, "Hello World!");
 		} catch (TTransportException e) {

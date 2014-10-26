@@ -1,7 +1,7 @@
 /**
  * 
  */
-package utils;
+package cn.edu.neu.mitt.mrj.utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;

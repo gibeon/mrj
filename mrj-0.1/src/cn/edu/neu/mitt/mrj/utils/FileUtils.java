@@ -1,4 +1,4 @@
-package utils;
+package cn.edu.neu.mitt.mrj.utils;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;

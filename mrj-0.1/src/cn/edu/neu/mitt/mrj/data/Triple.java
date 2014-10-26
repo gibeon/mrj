@@ -1,4 +1,4 @@
-package data;
+package cn.edu.neu.mitt.mrj.data;
 
 
 
@@ -10,7 +10,7 @@ import java.io.Serializable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
-import utils.HashFunctions;
+import cn.edu.neu.mitt.mrj.utils.HashFunctions;
 
 public class Triple implements WritableComparable<Triple>, Serializable {
 

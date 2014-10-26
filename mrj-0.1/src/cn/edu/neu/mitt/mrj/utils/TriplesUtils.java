@@ -1,4 +1,4 @@
-package utils;
+package cn.edu.neu.mitt.mrj.utils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -6,8 +6,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import data.Triple;
-import data.TripleSource;
+import cn.edu.neu.mitt.mrj.data.Triple;
+import cn.edu.neu.mitt.mrj.data.TripleSource;
 
 public class TriplesUtils {
 	

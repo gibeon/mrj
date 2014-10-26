@@ -1,4 +1,4 @@
-package data;
+package cn.edu.neu.mitt.mrj.data;
 
 import java.io.DataInput;
 import java.io.DataOutput;
