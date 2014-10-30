@@ -54,5 +54,12 @@ public class ImportTriplesReconstructReducer extends Reducer<LongWritable, LongW
 
 		context.getCounter("output","records").increment(1);
 		context.write(oKey, oValue);
+		
+		
+        int sum = 0;
+        for (IntWritable val : values)
+            sum += val.get();
+        keys.put("word", ByteBufferUtil.bytes(word.toString()));
+        context.write(keys, getBindVariables(word, sum));
 	}
 }

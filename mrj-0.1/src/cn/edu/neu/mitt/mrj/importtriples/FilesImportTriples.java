@@ -1,7 +1,12 @@
 package cn.edu.neu.mitt.mrj.importtriples;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
+import org.apache.cassandra.hadoop.ConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlOutputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -23,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
+import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.io.files.readers.NTriplesReader;
 import cn.edu.neu.mitt.mrj.io.files.writers.FilesCombinedWriter;
 import cn.edu.neu.mitt.mrj.io.files.writers.FilesDictWriter;
@@ -38,6 +44,8 @@ public class FilesImportTriples extends Configured implements Tool {
 	private int numMapTasks = 1;
 	private int sampling = 0;
 	private int resourceThreshold = 0;
+	
+	private static final String CASSANDRA_PRIMARY_KEY = "primary_key";	// key in hadoop job config context
 
 	/**
 	 * Step 1: sampleCommonResources -- sample those common resources
@@ -163,14 +171,33 @@ public class FilesImportTriples extends Configured implements Tool {
 	    job.setMapperClass(ImportTriplesReconstructMapper.class);
 	    job.setMapOutputKeyClass(LongWritable.class);
 	    job.setMapOutputValueClass(LongWritable.class);
-	    job.setReducerClass(ImportTriplesReconstructReducer.class);
-	    job.setOutputKeyClass(TripleSource.class);
-	    job.setOutputValueClass(Triple.class);
+	    //job.setReducerClass(ImportTriplesReconstructReducer.class);
+	    //job.setOutputKeyClass(TripleSource.class);
+	    //job.setOutputValueClass(Triple.class);
 	    
 	    //Output
 	    Path outputDir = new Path(args[2], "dir-input");
-	    SequenceFileOutputFormat.setOutputPath(job, outputDir);
-	    job.setOutputFormatClass(FilesTriplesWriter.class);
+	    //SequenceFileOutputFormat.setOutputPath(job, outputDir);
+	    //job.setOutputFormatClass(FilesTriplesWriter.class);
+	    
+	    
+	    //New job settings
+	    job.setReducerClass(ImportTriplesReconstructReducerToCassandra.class);
+        job.setOutputKeyClass(Map.class);
+        job.setOutputValueClass(List.class);
+        job.setOutputFormatClass(CqlOutputFormat.class);
+
+        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMN_FAMILY_JUSTIFICATIONS);
+        job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
+        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMN_FAMILY_JUSTIFICATIONS +
+        		" SET sub=?, pre=?, obj=? ";
+
+	    
+        CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
+        ConfigHelper.setOutputInitialAddress(job.getConfiguration(), "localhost");
+        ConfigHelper.setOutputPartitioner(job.getConfiguration(), "Murmur3Partitioner");
+	    
+	    
 	    
 	    //Launch
 	    long time = System.currentTimeMillis();

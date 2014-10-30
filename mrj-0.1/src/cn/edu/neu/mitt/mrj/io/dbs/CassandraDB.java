@@ -45,6 +45,11 @@ public class CassandraDB {
     public static final String KEYSPACE = "mrjks";	// mr.j keyspace
     public static final String COLUMN_FAMILY_JUSTIFICATIONS = "justifications";	// mr.j keyspace
     public static final String COLUMN_FAMILY_RESOURCES = "resources";	// mr.j keyspace
+    public static final String COLUMN_SUB = "sub";	// mrjks.justifications.sub
+    public static final String COLUMN_PRE = "pre";	// mrjks.justifications.pre
+    public static final String COLUMN_OBJ = "obj";	// mrjks.justifications.obj
+    public static final String COLUMN_ID = "id";	// mrjks.resources.id
+    public static final String COLUMN_LABEL = "label";	// mrjks.resources.label
 
 	
 	private Cassandra.Iface client;
