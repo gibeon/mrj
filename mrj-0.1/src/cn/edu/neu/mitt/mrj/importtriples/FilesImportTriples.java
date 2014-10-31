@@ -45,7 +45,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	private int sampling = 0;
 	private int resourceThreshold = 0;
 	
-	private static final String CASSANDRA_PRIMARY_KEY = "primary_key";	// key in hadoop job config context
+	private static final String CASSANDRA_PRIMARY_KEY = "row_key";	// key in hadoop job config context
 
 	/**
 	 * Step 1: sampleCommonResources -- sample those common resources
@@ -188,7 +188,9 @@ public class FilesImportTriples extends Configured implements Tool {
         job.setOutputFormatClass(CqlOutputFormat.class);
 
         ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMN_FAMILY_JUSTIFICATIONS);
-        job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
+        
+        // is it useful below line?
+        //job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
         String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMN_FAMILY_JUSTIFICATIONS +
         		" SET sub=?, pre=?, obj=? ";
 
