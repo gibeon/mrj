@@ -9,16 +9,15 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
-import org.apache.hadoop.io.compress.DefaultCodec;	
+import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 
-import utils.TriplesUtils;
-
-import data.Triple;
-import data.TripleSource;
+import cn.edu.neu.mitt.mrj.data.Triple;
+import cn.edu.neu.mitt.mrj.data.TripleSource;
+import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
 public class FilesTriplesWriter extends SequenceFileOutputFormat<TripleSource, Triple> {
 	public RecordWriter<TripleSource, Triple> getRecordWriter(TaskAttemptContext context) throws IOException, InterruptedException {
