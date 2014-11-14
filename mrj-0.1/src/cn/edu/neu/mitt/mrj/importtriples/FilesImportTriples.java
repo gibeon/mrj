@@ -187,12 +187,12 @@ public class FilesImportTriples extends Configured implements Tool {
         job.setOutputValueClass(List.class);
         job.setOutputFormatClass(CqlOutputFormat.class);
 
-        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMN_FAMILY_JUSTIFICATIONS);
+        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
         
         // is it useful below line?
         //job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
-        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMN_FAMILY_JUSTIFICATIONS +
-        		" SET sub=?, pre=?, obj=? ";
+        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
+        		" SET " + CassandraDB.COLUMN_IS_LITERAL + "=? ";
 
 	    
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);

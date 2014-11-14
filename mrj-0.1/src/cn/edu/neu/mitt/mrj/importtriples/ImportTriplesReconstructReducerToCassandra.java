@@ -37,7 +37,6 @@ public class ImportTriplesReconstructReducerToCassandra extends
 	private Triple oValue = new Triple();
 //	private TripleSource oKey = new TripleSource();
 	private Map<String, ByteBuffer> keys;
-	private List<ByteBuffer> variables;
 	
 	
 	// Init keys and variables
@@ -45,7 +44,6 @@ public class ImportTriplesReconstructReducerToCassandra extends
 	protected void setup(org.apache.hadoop.mapreduce.Reducer<LongWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
 			throws IOException, InterruptedException {
 		keys = new LinkedHashMap<String, ByteBuffer>();
-		variables = new ArrayList<ByteBuffer>();
 	}
 
 
@@ -90,11 +88,15 @@ public class ImportTriplesReconstructReducerToCassandra extends
         keys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(oValue.getSubject()));
         keys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(oValue.getPredicate()));
         keys.put(CassandraDB.COLUMN_OBJ, ByteBufferUtil.bytes(oValue.getObject()));
+        keys.put(CassandraDB.COLUMN_RULE, ByteBufferUtil.bytes(0));	// for original triple set 0
+        keys.put(CassandraDB.COLUMN_V1, ByteBufferUtil.bytes(0));	// for original triple set 0
+        keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(0));	// for original triple set 0
+        keys.put(CassandraDB.COLUMN_V3, ByteBufferUtil.bytes(0));	// for original triple set 0
         
-        // Prepare variables 
-        variables.add(ByteBufferUtil.bytes(oValue.getSubject()));
-        variables.add(ByteBufferUtil.bytes(oValue.getPredicate()));
-        variables.add(ByteBufferUtil.bytes(oValue.getObject()));
+        // Prepare variables, here is a boolean value for CassandraDB.COLUMN_INFERRED
+    	List<ByteBuffer> variables =  new ArrayList<ByteBuffer>();
+//      variables.add(ByteBufferUtil.bytes(oValue.getSubject()));
+        variables.add(ByteBufferUtil.bytes(oValue.isObjectLiteral()?1:0));
         context.write(keys, variables);
 	}
 

@@ -43,11 +43,16 @@ import org.slf4j.LoggerFactory;
 public class CassandraDB {
     private static final Logger logger = LoggerFactory.getLogger(CassandraDB.class);
     public static final String KEYSPACE = "mrjks";	// mr.j keyspace
-    public static final String COLUMN_FAMILY_JUSTIFICATIONS = "justifications";	// mr.j keyspace
-    public static final String COLUMN_FAMILY_RESOURCES = "resources";	// mr.j keyspace
+    public static final String COLUMNFAMILY_JUSTIFICATIONS = "justifications";	// mr.j keyspace
+    public static final String COLUMNFAMILY_RESOURCES = "resources";	// mr.j keyspace
     public static final String COLUMN_SUB = "sub";	// mrjks.justifications.sub
     public static final String COLUMN_PRE = "pre";	// mrjks.justifications.pre
     public static final String COLUMN_OBJ = "obj";	// mrjks.justifications.obj
+    public static final String COLUMN_IS_LITERAL = "isliteral" ;	// mrjks.justifications.inferred
+    public static final String COLUMN_RULE = "rule"; // mrjks.justifications.rule
+    public static final String COLUMN_V1 = "v1"; // mrjks.justifications.rule
+    public static final String COLUMN_V2 = "v2"; // mrjks.justifications.rule
+    public static final String COLUMN_V3 = "v3"; // mrjks.justifications.rule
     public static final String COLUMN_ID = "id";	// mrjks.resources.id
     public static final String COLUMN_LABEL = "label";	// mrjks.resources.label
 
@@ -108,30 +113,39 @@ public class CassandraDB {
             SchemaDisagreementException, 
             TException {
     	
-        String query = "CREATE TABLE " + KEYSPACE + "."  + COLUMN_FAMILY_JUSTIFICATIONS + 
-                          " ( sub bigint," +
-                          "   pre bigint, " +
-                          "   obj bigint, " +
-                          "   PRIMARY KEY ((sub, pre, obj)) ) ";
+        String query = "CREATE TABLE " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
+                          " ( " + 
+                          COLUMN_SUB + " bigint, " +
+                          COLUMN_PRE + " bigint, " +
+                          COLUMN_OBJ + " bigint, " +
+                          COLUMN_IS_LITERAL + " boolean, " +
+                          COLUMN_RULE + "int, " +
+                          COLUMN_V1 + " bigint, " +
+                          COLUMN_V2 + " bigint, " +
+                          COLUMN_V3 + " bigint, " +
+                          "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +"), " +
+                          COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +
+                          " ) ) ";
 
         try {
-            logger.info("set up table " + COLUMN_FAMILY_JUSTIFICATIONS);
+            logger.info("set up table " + COLUMNFAMILY_JUSTIFICATIONS);
             client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
         } catch (InvalidRequestException e) {
-            logger.error("failed to create table " + KEYSPACE + "."  + COLUMN_FAMILY_JUSTIFICATIONS, e);
+            logger.error("failed to create table " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS, e);
         }
 
-        query = "CREATE TABLE " + KEYSPACE + "."  + COLUMN_FAMILY_RESOURCES + 
-                " ( id bigint," +
-                "   label text," +
-                "   PRIMARY KEY (id) ) ";
+        query = "CREATE TABLE " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES + 
+                " ( " +
+        		COLUMN_ID + "bigint, " +
+        		COLUMN_LABEL + "text, " +
+                "   PRIMARY KEY (" + COLUMN_ID + ") ) ";
 
         try {
-            logger.info("set up table " + COLUMN_FAMILY_RESOURCES);
+            logger.info("set up table " + COLUMNFAMILY_RESOURCES);
             client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
         }
         catch (InvalidRequestException e) {
-            logger.error("failed to create table " + KEYSPACE + "."  + COLUMN_FAMILY_RESOURCES, e);
+            logger.error("failed to create table " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES, e);
         }
     }
     
@@ -158,8 +172,8 @@ public class CassandraDB {
 	
 	
 	public void insertResources(long id, String label) throws InvalidRequestException, TException{
-        String query = "INSERT INTO " + COLUMN_FAMILY_RESOURCES +  
-                "(id, label) " +
+        String query = "INSERT INTO " + COLUMNFAMILY_RESOURCES +  
+                "(" + COLUMN_ID + ", " + COLUMN_LABEL + ") " +
                 " values (?, ?) ";
         List<ByteBuffer> args = new ArrayList<ByteBuffer>();
         args.add(ByteBufferUtil.bytes(id));
@@ -169,9 +183,10 @@ public class CassandraDB {
         logger.info("Number of results: " + result.getNum());
 	}
 
+	// TODO it's wrong!!!!!!!!!!
 	public void insertJustifications(long sub, long pre, long obj, short rule, long var1, long var2, long var3) 
 			throws InvalidRequestException, TException{
-        String query = "INSERT INTO " + COLUMN_FAMILY_JUSTIFICATIONS +  
+        String query = "INSERT INTO " + COLUMNFAMILY_JUSTIFICATIONS +  
                 "(id, line) " +
                 " values (?, ?) ";
         
@@ -187,7 +202,7 @@ public class CassandraDB {
 		try {
 			CassandraDB db = new CassandraDB("localhost", 9160);
 			db.init();
-			db.insertResources(100, "Hello World!");
+//			db.insertResources(100, "Hello World!");
 		} catch (TTransportException e) {
 			e.printStackTrace();
 		} catch (InvalidRequestException e) {
