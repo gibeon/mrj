@@ -48,7 +48,9 @@ public class CassandraDB {
     public static final String COLUMN_SUB = "sub";	// mrjks.justifications.sub
     public static final String COLUMN_PRE = "pre";	// mrjks.justifications.pre
     public static final String COLUMN_OBJ = "obj";	// mrjks.justifications.obj
-    public static final String COLUMN_IS_LITERAL = "isliteral" ;	// mrjks.justifications.inferred
+    public static final String COLUMN_TRIPLE_TYPE = "tripletype" ;	// mrjks.justifications.tripletype
+    public static final String COLUMN_IS_LITERAL = "isliteral" ;	// mrjks.justifications.isliteral
+    public static final String COLUMN_INFERRED = "inferred" ;	// mrjks.justifications.inferred    
     public static final String COLUMN_RULE = "rule"; // mrjks.justifications.rule
     public static final String COLUMN_V1 = "v1"; // mrjks.justifications.rule
     public static final String COLUMN_V2 = "v2"; // mrjks.justifications.rule
@@ -115,15 +117,17 @@ public class CassandraDB {
     	
         String query = "CREATE TABLE " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
                           " ( " + 
-                          COLUMN_SUB + " bigint, " +
-                          COLUMN_PRE + " bigint, " +
-                          COLUMN_OBJ + " bigint, " +
-                          COLUMN_IS_LITERAL + " boolean, " +
-                          COLUMN_RULE + "int, " +
+                          COLUMN_SUB + " bigint, " +			// partition key
+                          COLUMN_PRE + " bigint, " +			// partition key
+                          COLUMN_OBJ + " bigint, " +			// partition key
+                          COLUMN_IS_LITERAL + " boolean, " +	// partition key
+                          COLUMN_TRIPLE_TYPE + " int, " +		// partition key
+                          COLUMN_RULE + " int, " +
                           COLUMN_V1 + " bigint, " +
                           COLUMN_V2 + " bigint, " +
                           COLUMN_V3 + " bigint, " +
-                          "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +"), " +
+                          COLUMN_INFERRED + " boolean, " +		// this is the only field that is not included in the primary key
+                          "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +  ", " + COLUMN_IS_LITERAL +  ", " + COLUMN_TRIPLE_TYPE + "), " +
                           COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +
                           " ) ) ";
 
@@ -136,8 +140,8 @@ public class CassandraDB {
 
         query = "CREATE TABLE " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES + 
                 " ( " +
-        		COLUMN_ID + "bigint, " +
-        		COLUMN_LABEL + "text, " +
+        		COLUMN_ID + " bigint, " +
+        		COLUMN_LABEL + " text, " +
                 "   PRIMARY KEY (" + COLUMN_ID + ") ) ";
 
         try {

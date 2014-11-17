@@ -24,7 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cn.edu.neu.mitt.mrj.data.Triple;
+import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
 /**
  * @author gibeo_000
@@ -35,7 +37,7 @@ public class ImportTriplesReconstructReducerToCassandra extends
 	protected static Logger log = LoggerFactory.getLogger(ImportTriplesReconstructReducerToCassandra.class);
 
 	private Triple oValue = new Triple();
-//	private TripleSource oKey = new TripleSource();
+	private TripleSource source = new TripleSource();
 	private Map<String, ByteBuffer> keys;
 	
 	
@@ -83,20 +85,27 @@ public class ImportTriplesReconstructReducerToCassandra extends
 		context.getCounter("output","records").increment(1);
 		//context.write(oKey, oValue);
         
-        
-        // Prepare composite key (sub, pre, obj)
+    	byte one = 1;
+    	byte zero = 0;
+
+	    // Prepare composite key (sub, pre, obj)
         keys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(oValue.getSubject()));
         keys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(oValue.getPredicate()));
         keys.put(CassandraDB.COLUMN_OBJ, ByteBufferUtil.bytes(oValue.getObject()));
-        keys.put(CassandraDB.COLUMN_RULE, ByteBufferUtil.bytes(0));	// for original triple set 0
-        keys.put(CassandraDB.COLUMN_V1, ByteBufferUtil.bytes(0));	// for original triple set 0
-        keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(0));	// for original triple set 0
-        keys.put(CassandraDB.COLUMN_V3, ByteBufferUtil.bytes(0));	// for original triple set 0
+    	// the length of boolean type in cassandra is one byte!!!!!!!!
+        keys.put(CassandraDB.COLUMN_IS_LITERAL, oValue.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));
+        keys.put(CassandraDB.COLUMN_TRIPLE_TYPE, ByteBufferUtil.bytes(TriplesUtils.getTripleType(source, oValue.getSubject(), oValue.getPredicate(), oValue.getObject())));
+        keys.put(CassandraDB.COLUMN_RULE, ByteBufferUtil.bytes(0));	// for original triple set 0 int
+        keys.put(CassandraDB.COLUMN_V1, ByteBufferUtil.bytes(0L));	// for original triple set 0 long
+        keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(0L));	// for original triple set 0 long
+        keys.put(CassandraDB.COLUMN_V3, ByteBufferUtil.bytes(0L));	// for original triple set 0 long
         
-        // Prepare variables, here is a boolean value for CassandraDB.COLUMN_INFERRED
+        // Prepare variables, here is a boolean value for CassandraDB.COLUMN_IS_LITERAL
     	List<ByteBuffer> variables =  new ArrayList<ByteBuffer>();
 //      variables.add(ByteBufferUtil.bytes(oValue.getSubject()));
-        variables.add(ByteBufferUtil.bytes(oValue.isObjectLiteral()?1:0));
+    	// the length of boolean type in cassandra is one byte!!!!!!!!
+    	// For column inferred, init it as false i.e. zero
+        variables.add(ByteBuffer.wrap(new byte[]{zero}));
         context.write(keys, variables);
 	}
 

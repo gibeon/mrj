@@ -192,7 +192,7 @@ public class FilesImportTriples extends Configured implements Tool {
         // is it useful below line?
         //job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
         String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
-        		" SET " + CassandraDB.COLUMN_IS_LITERAL + "=? ";
+        		" SET " + CassandraDB.COLUMN_INFERRED + "=? ";
 
 	    
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
