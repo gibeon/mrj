@@ -26,13 +26,10 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cn.edu.neu.mitt.mrj.data.Triple;
-import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.io.files.readers.NTriplesReader;
 import cn.edu.neu.mitt.mrj.io.files.writers.FilesCombinedWriter;
 import cn.edu.neu.mitt.mrj.io.files.writers.FilesDictWriter;
-import cn.edu.neu.mitt.mrj.io.files.writers.FilesTriplesWriter;
 
 
 public class FilesImportTriples extends Configured implements Tool {
@@ -45,7 +42,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	private int sampling = 0;
 	private int resourceThreshold = 0;
 	
-	private static final String CASSANDRA_PRIMARY_KEY = "row_key";	// key in hadoop job config context
+//	private static final String CASSANDRA_PRIMARY_KEY = "row_key";	// key in hadoop job config context
 
 	/**
 	 * Step 1: sampleCommonResources -- sample those common resources
@@ -192,14 +189,12 @@ public class FilesImportTriples extends Configured implements Tool {
         // is it useful below line?
         //job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
         String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
-        		" SET " + CassandraDB.COLUMN_INFERRED + "=? ";
+        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? ";
 
 	    
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
         ConfigHelper.setOutputInitialAddress(job.getConfiguration(), "localhost");
         ConfigHelper.setOutputPartitioner(job.getConfiguration(), "Murmur3Partitioner");
-	    
-	    
 	    
 	    //Launch
 	    long time = System.currentTimeMillis();

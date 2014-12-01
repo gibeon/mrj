@@ -105,7 +105,8 @@ public class ImportTriplesReconstructReducerToCassandra extends
 //      variables.add(ByteBufferUtil.bytes(oValue.getSubject()));
     	// the length of boolean type in cassandra is one byte!!!!!!!!
     	// For column inferred, init it as false i.e. zero
-        variables.add(ByteBuffer.wrap(new byte[]{zero}));
+//      variables.add(ByteBuffer.wrap(new byte[]{zero}));
+    	variables.add(ByteBufferUtil.bytes(0));		// It corresponds to COLUMN_INFERRED_STEPS where steps = 0 means an original triple 
         context.write(keys, variables);
 	}
 

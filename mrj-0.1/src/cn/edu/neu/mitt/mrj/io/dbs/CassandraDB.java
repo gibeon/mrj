@@ -10,15 +10,23 @@
 package cn.edu.neu.mitt.mrj.io.dbs;
 
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
+import org.apache.cassandra.thrift.CqlRow;
+import org.apache.cassandra.thrift.CqlRow._Fields;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
@@ -36,6 +44,8 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
+
 /**
  * @author gibeo_000
  *
@@ -50,13 +60,16 @@ public class CassandraDB {
     public static final String COLUMN_OBJ = "obj";	// mrjks.justifications.obj
     public static final String COLUMN_TRIPLE_TYPE = "tripletype" ;	// mrjks.justifications.tripletype
     public static final String COLUMN_IS_LITERAL = "isliteral" ;	// mrjks.justifications.isliteral
-    public static final String COLUMN_INFERRED = "inferred" ;	// mrjks.justifications.inferred    
+    public static final String COLUMN_INFERRED_STEPS = "inferredsteps" ;	// mrjks.justifications.inferredsteps    
     public static final String COLUMN_RULE = "rule"; // mrjks.justifications.rule
     public static final String COLUMN_V1 = "v1"; // mrjks.justifications.rule
     public static final String COLUMN_V2 = "v2"; // mrjks.justifications.rule
     public static final String COLUMN_V3 = "v3"; // mrjks.justifications.rule
     public static final String COLUMN_ID = "id";	// mrjks.resources.id
     public static final String COLUMN_LABEL = "label";	// mrjks.resources.label
+    
+    public static final String DEFAULT_HOST = "localhost";
+    public static final String DEFAULT_PORT = "9160";
 
 	
 	private Cassandra.Iface client;
@@ -65,8 +78,8 @@ public class CassandraDB {
         if (System.getProperty("cassandra.host") == null || System.getProperty("cassandra.port") == null){
             logger.warn("cassandra.host or cassandra.port is not defined, using default");
         }
-        return createConnection(System.getProperty("cassandra.host", "localhost"),
-                                Integer.valueOf(System.getProperty("cassandra.port", "9160")));
+        return createConnection(System.getProperty("cassandra.host", DEFAULT_HOST),
+                                Integer.valueOf(System.getProperty("cassandra.port", DEFAULT_PORT)));
     }
 
     private static Cassandra.Client createConnection(String host, Integer port) throws TTransportException {
@@ -126,7 +139,7 @@ public class CassandraDB {
                           COLUMN_V1 + " bigint, " +
                           COLUMN_V2 + " bigint, " +
                           COLUMN_V3 + " bigint, " +
-                          COLUMN_INFERRED + " boolean, " +		// this is the only field that is not included in the primary key
+                          COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
                           "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +  ", " + COLUMN_IS_LITERAL +  ", " + COLUMN_TRIPLE_TYPE + "), " +
                           COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +
                           " ) ) ";
@@ -201,12 +214,111 @@ public class CassandraDB {
 	}
 	
 	
+	public boolean loadSetIntoMemory(Set<Long> schemaTriples, Set<Integer> filters, int previousStep) throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+		return loadSetIntoMemory(schemaTriples, filters, previousStep, false);
+	}
+	
+	public boolean loadSetIntoMemory(
+			Set<Long> schemaTriples, Set<Integer> filters, 
+			int previousStep, boolean inverted)	throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+		long startTime = System.currentTimeMillis();
+		boolean schemaChanged = false;
+
+		logger.info("In CassandraDB's loadSetIntoMemory");
+		
+        String query = "SELECT " + COLUMN_SUB + ", " + COLUMN_OBJ + ", " + COLUMN_INFERRED_STEPS +
+        		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES +  
+                " WHERE " + COLUMN_TRIPLE_TYPE + " = ? ";
+        
+        CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
+
+        for (int filter : filters){
+        	List<ByteBuffer> list = new ArrayList<ByteBuffer>();
+        	list.add(ByteBufferUtil.bytes(filter));
+        	CqlResult result = client.execute_prepared_cql3_query(preparedResult.itemId, list, ConsistencyLevel.ONE);
+        	for(CqlRow row : result.rows){
+        		Long sub = (Long)row.getFieldValue(_Fields.findByName(COLUMN_SUB));
+        		Long obj = (Long)row.getFieldValue(_Fields.findByName(COLUMN_OBJ));
+        		int step = (Integer)row.getFieldValue(_Fields.findByName(COLUMN_INFERRED_STEPS));
+        		if (!inverted)
+        			schemaTriples.add(sub);
+        		else
+        			schemaTriples.add(obj);
+        		
+				if (step > previousStep)
+					schemaChanged = true;
+        	}
+        }
+		
+		logger.debug("Time for CassandraDB's loadSetIntoMemory " + (System.currentTimeMillis() - startTime));
+		return schemaChanged;
+	}
+	
+	
+	public Map<Long, Collection<Long>> loadMapIntoMemory(Set<Integer> filters) throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+		return loadMapIntoMemory(filters, false);
+	}
+	
+	// 返回的key就是triple的subject，value是object
+	public Map<Long, Collection<Long>> loadMapIntoMemory(Set<Integer> filters, boolean inverted) throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+		long startTime = System.currentTimeMillis();
+
+		logger.info("In CassandraDB's loadMapIntoMemory");
+
+		Map<Long, Collection<Long>> schemaTriples = new HashMap<Long, Collection<Long>>();
+
+        String query = "SELECT " + COLUMN_SUB + ", " + COLUMN_OBJ + ", " + COLUMN_INFERRED_STEPS +
+        		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES +  
+                " WHERE " + COLUMN_TRIPLE_TYPE + " = ? ";
+        
+        CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
+
+        for (int filter : filters){
+        	List<ByteBuffer> list = new ArrayList<ByteBuffer>();
+        	list.add(ByteBufferUtil.bytes(filter));
+        	CqlResult result = client.execute_prepared_cql3_query(preparedResult.itemId, list, ConsistencyLevel.ONE);
+        	for(CqlRow row : result.rows){
+        		Long sub = (Long)row.getFieldValue(_Fields.findByName(COLUMN_SUB));
+        		Long obj = (Long)row.getFieldValue(_Fields.findByName(COLUMN_OBJ));
+        		int step = (Integer)row.getFieldValue(_Fields.findByName(COLUMN_INFERRED_STEPS));
+				long tripleKey = 0;
+				long tripleValue = 0;
+				if (!inverted){
+					tripleKey = sub;
+					tripleValue = obj;
+        		}else{
+					tripleKey = obj;
+					tripleValue = sub;
+        		}
+				Collection<Long> cTriples = schemaTriples.get(tripleKey);
+				if (cTriples == null) {
+					cTriples = new ArrayList<Long>();
+					schemaTriples.put(tripleKey, cTriples);
+				}
+				cTriples.add(tripleValue);						
+
+        	}
+        }
+		
+		logger.debug("Time for CassandraDB's loadMapIntoMemory " + (System.currentTimeMillis() - startTime));
+
+		return schemaTriples;
+	}	
+
+
+	
 	
 	public static void main(String[] args) {
 		try {
 			CassandraDB db = new CassandraDB("localhost", 9160);
 			db.init();
 //			db.insertResources(100, "Hello World!");
+			Set<Long> schemaTriples = new HashSet<Long>();
+			Set<Integer> filters = new HashSet<Integer>();
+			filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
+			db.loadSetIntoMemory(schemaTriples, filters, 0);
+			System.out.println(schemaTriples);
+	        System.exit(0);
 		} catch (TTransportException e) {
 			e.printStackTrace();
 		} catch (InvalidRequestException e) {
@@ -218,6 +330,8 @@ public class CassandraDB {
 		} catch (SchemaDisagreementException e) {
 			e.printStackTrace();
 		} catch (TException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
