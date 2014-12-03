@@ -16,11 +16,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
@@ -45,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
+
 
 /**
  * @author gibeo_000
@@ -227,8 +230,9 @@ public class CassandraDB {
 		logger.info("In CassandraDB's loadSetIntoMemory");
 		
         String query = "SELECT " + COLUMN_SUB + ", " + COLUMN_OBJ + ", " + COLUMN_INFERRED_STEPS +
-        		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES +  
+        		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS +  
                 " WHERE " + COLUMN_TRIPLE_TYPE + " = ? ";
+        System.out.println(query);
         
         CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
 
@@ -237,16 +241,25 @@ public class CassandraDB {
         	list.add(ByteBufferUtil.bytes(filter));
         	CqlResult result = client.execute_prepared_cql3_query(preparedResult.itemId, list, ConsistencyLevel.ONE);
         	for(CqlRow row : result.rows){
-        		Long sub = (Long)row.getFieldValue(_Fields.findByName(COLUMN_SUB));
-        		Long obj = (Long)row.getFieldValue(_Fields.findByName(COLUMN_OBJ));
-        		int step = (Integer)row.getFieldValue(_Fields.findByName(COLUMN_INFERRED_STEPS));
-        		if (!inverted)
-        			schemaTriples.add(sub);
+        		Iterator<Column> columnsIt = row.getColumnsIterator();
+      			Long sub = null, obj = null;
+	      		while (columnsIt.hasNext()) {
+	      			Column column = columnsIt.next();
+	      		    if (new String(column.getName()).equals(COLUMN_SUB))
+	      		    	sub = ByteBufferUtil.toLong(column.bufferForValue());
+	      		    if (new String(column.getName()).equals(COLUMN_OBJ))
+	      		    	obj = ByteBufferUtil.toLong(column.bufferForValue());
+	      		    if (new String(column.getName()).equals(COLUMN_INFERRED_STEPS)){
+	      		    	int step = ByteBufferUtil.toInt(column.bufferForValue());
+	      		    	if (step > previousStep)
+							schemaChanged = true;
+	      		    }
+	     		}
+    			if (!inverted)
+    				schemaTriples.add(sub);
         		else
         			schemaTriples.add(obj);
-        		
-				if (step > previousStep)
-					schemaChanged = true;
+
         	}
         }
 		
@@ -268,7 +281,7 @@ public class CassandraDB {
 		Map<Long, Collection<Long>> schemaTriples = new HashMap<Long, Collection<Long>>();
 
         String query = "SELECT " + COLUMN_SUB + ", " + COLUMN_OBJ + ", " + COLUMN_INFERRED_STEPS +
-        		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES +  
+        		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS +  
                 " WHERE " + COLUMN_TRIPLE_TYPE + " = ? ";
         
         CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
@@ -278,9 +291,16 @@ public class CassandraDB {
         	list.add(ByteBufferUtil.bytes(filter));
         	CqlResult result = client.execute_prepared_cql3_query(preparedResult.itemId, list, ConsistencyLevel.ONE);
         	for(CqlRow row : result.rows){
-        		Long sub = (Long)row.getFieldValue(_Fields.findByName(COLUMN_SUB));
-        		Long obj = (Long)row.getFieldValue(_Fields.findByName(COLUMN_OBJ));
-        		int step = (Integer)row.getFieldValue(_Fields.findByName(COLUMN_INFERRED_STEPS));
+        		Iterator<Column> columnsIt = row.getColumnsIterator();
+      			Long sub = null, obj = null;
+	      		while (columnsIt.hasNext()) {
+	      			Column column = columnsIt.next();
+	      		    if (new String(column.getName()).equals(COLUMN_SUB))
+	      		    	sub = ByteBufferUtil.toLong(column.bufferForValue());
+	      		    if (new String(column.getName()).equals(COLUMN_OBJ))
+	      		    	obj = ByteBufferUtil.toLong(column.bufferForValue());
+	     		}
+  
 				long tripleKey = 0;
 				long tripleValue = 0;
 				if (!inverted){
@@ -306,6 +326,10 @@ public class CassandraDB {
 	}	
 
 
+	public void createIndexOnTripleType() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+		String query = "CREATE INDEX ON " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + "(" + COLUMN_TRIPLE_TYPE + ")";
+		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+	}
 	
 	
 	public static void main(String[] args) {
