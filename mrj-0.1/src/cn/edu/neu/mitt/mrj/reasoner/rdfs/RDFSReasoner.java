@@ -2,15 +2,10 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-
-import cn.edu.neu.mitt.mrj.partitioners.MyHashPartitioner;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.RDFSSpecialPropsMapper;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.RDFSSubPropDomRangeMapper;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.RDFSSubPropInheritMapper;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.RDFSSubclasMapper;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.SwapTriplesMapper;
+import java.util.Set;
 
 import org.apache.cassandra.hadoop.ConfigHelper;
 import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
@@ -18,8 +13,6 @@ import org.apache.cassandra.hadoop.cql3.CqlInputFormat;
 import org.apache.cassandra.hadoop.cql3.CqlOutputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Counter;
@@ -29,14 +22,9 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.DelDuplicatesReducer;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.RDFSSpecialPropsReducer;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.RDFSSubclasReducer;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.RDFSSubpropDomRangeReducer;
-import cn.edu.neu.mitt.mrj.reasoner.rdfs.RDFSSubpropInheritReducer;
-import cn.edu.neu.mitt.mrj.data.Triple;
-import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.partitioners.MyHashPartitioner;
+import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
 public class RDFSReasoner extends Configured implements Tool {
 	
@@ -46,6 +34,8 @@ public class RDFSReasoner extends Configured implements Tool {
 	public static int step = 0;
 	private int lastExecutionPropInheritance = -1;
 	private int lastExecutionDomRange = -1;
+	
+	private static String CQL_PAGE_ROW_SIZE = "10";	//3
 
 	private void parseArgs(String[] args) {
 		
@@ -58,17 +48,19 @@ public class RDFSReasoner extends Configured implements Tool {
 				numReduceTasks = Integer.valueOf(args[++i]);
 			}
 			
-			if (args[i].equalsIgnoreCase("--startingStep")) {
-				RDFSReasoner.step = Integer.valueOf(args[++i]);
-			}
-
-			if (args[i].equalsIgnoreCase("--lastStepPropInher")) {
-				lastExecutionPropInheritance = Integer.valueOf(args[++i]);
-			}
-			
-			if (args[i].equalsIgnoreCase("--lastStepDomRange")) {
-				lastExecutionDomRange = Integer.valueOf(args[++i]);
-			}
+			// We will not support the following arguments for simplicity
+			// That means we will not support stop and restart from breakpoints
+//			if (args[i].equalsIgnoreCase("--startingStep")) {
+//				RDFSReasoner.step = Integer.valueOf(args[++i]);
+//			}
+//
+//			if (args[i].equalsIgnoreCase("--lastStepPropInher")) {
+//				lastExecutionPropInheritance = Integer.valueOf(args[++i]);
+//			}
+//			
+//			if (args[i].equalsIgnoreCase("--lastStepDomRange")) {
+//				lastExecutionDomRange = Integer.valueOf(args[++i]);
+//			}
 		}
 	}
 
@@ -85,28 +77,65 @@ public class RDFSReasoner extends Configured implements Tool {
 	
 	
 	// Input from CassandraDB.COLUMNFAMILY_JUSTIFICATIONS
-	private void configureInputJob(Job job) {
+	private void configureInputJob(Job job, Set<Integer> filters) {
 		//Set the input
         ConfigHelper.setInputInitialAddress(job.getConfiguration(), "localhost");
         ConfigHelper.setInputRpcPort(job.getConfiguration(), "9160");
         ConfigHelper.setInputPartitioner(job.getConfiguration(), "Murmur3Partitioner");
         ConfigHelper.setInputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
-        CqlConfigHelper.setInputCql(job.getConfiguration(), 
-        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
-        		" WHERE TOKEN(" + 
-        		CassandraDB.COLUMN_SUB + ", " + 
-        		CassandraDB.COLUMN_PRE + ", " + 
-        		CassandraDB.COLUMN_OBJ + ", " + 
-        		CassandraDB.COLUMN_IS_LITERAL + ", " + 
-        		CassandraDB.COLUMN_TRIPLE_TYPE + 
-        		") > ? AND TOKEN(" + 
-        		CassandraDB.COLUMN_SUB + ", " + 
-        		CassandraDB.COLUMN_PRE + ", " + 
-				CassandraDB.COLUMN_OBJ + ", " + 
-        		CassandraDB.COLUMN_IS_LITERAL + ", " + 
-				CassandraDB.COLUMN_TRIPLE_TYPE + 
-        		") <= ? ALLOW FILTERING");
-        CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), "3");
+        if (filters.size() == 0){
+	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
+	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+	        		" WHERE TOKEN(" + 
+	        		CassandraDB.COLUMN_SUB + ", " + 
+	        		CassandraDB.COLUMN_PRE + ", " + 
+	        		CassandraDB.COLUMN_OBJ + ", " + 
+	        		CassandraDB.COLUMN_IS_LITERAL +
+	        		") > ? AND TOKEN(" + 
+	        		CassandraDB.COLUMN_SUB + ", " + 
+	        		CassandraDB.COLUMN_PRE + ", " + 
+					CassandraDB.COLUMN_OBJ + ", " + 
+	        		CassandraDB.COLUMN_IS_LITERAL + 
+	        		") <= ? ALLOW FILTERING");
+        	
+        }
+        else if (filters.size() == 1){
+	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
+	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+	        		" WHERE TOKEN(" + 
+	        		CassandraDB.COLUMN_SUB + ", " + 
+	        		CassandraDB.COLUMN_PRE + ", " + 
+	        		CassandraDB.COLUMN_OBJ + ", " + 
+	        		CassandraDB.COLUMN_IS_LITERAL +
+	        		") > ? AND TOKEN(" + 
+	        		CassandraDB.COLUMN_SUB + ", " + 
+	        		CassandraDB.COLUMN_PRE + ", " + 
+					CassandraDB.COLUMN_OBJ + ", " + 
+	        		CassandraDB.COLUMN_IS_LITERAL + 
+	        		") <= ? AND " +
+	        		CassandraDB.COLUMN_TRIPLE_TYPE + " = " + filters.toArray()[0] +
+	        		" ALLOW FILTERING");
+        }else{
+        	String strFilter = filters.toString();
+        	String strInFilterClause = strFilter.substring(1, strFilter.length()-1);	// remove "[" and "]" characters of Set.toString()
+        	strInFilterClause = "(" + strInFilterClause + ")";
+            CqlConfigHelper.setInputCql(job.getConfiguration(), 
+            		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+            		" WHERE TOKEN(" + 
+            		CassandraDB.COLUMN_SUB + ", " + 
+            		CassandraDB.COLUMN_PRE + ", " + 
+            		CassandraDB.COLUMN_OBJ + ", " + 
+            		CassandraDB.COLUMN_IS_LITERAL +
+            		") > ? AND TOKEN(" + 
+            		CassandraDB.COLUMN_SUB + ", " + 
+            		CassandraDB.COLUMN_PRE + ", " + 
+    				CassandraDB.COLUMN_OBJ + ", " + 
+            		CassandraDB.COLUMN_IS_LITERAL + 
+            		") <= ? AND " + 
+            		CassandraDB.COLUMN_TRIPLE_TYPE + " IN " + strInFilterClause +
+            		" ALLOW FILTERING");        	
+        }
+        CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), CQL_PAGE_ROW_SIZE);
         job.setInputFormatClass(CqlInputFormat.class);
 	}
 	
@@ -127,18 +156,18 @@ public class RDFSReasoner extends Configured implements Tool {
 
 	
 	// In each derivation, we may create a set of jobs
-	private Job createNewJob(String jobName, String filenameFilter)
+	private Job createNewJob(String jobName, Set<Integer> filters)
 		throws IOException {
 		Configuration conf = new Configuration();
 		conf.setInt("maptasks", numMapTasks);
-		conf.set("input.filter", filenameFilter);
+		conf.set("input.filter", filters.toString());
 	    
 		Job job = new Job(conf);
 		job.setJobName(jobName);
 		job.setJarByClass(RDFSReasoner.class);
 	    job.setNumReduceTasks(numReduceTasks);
 	    
-	    configureInputJob(job);
+	    configureInputJob(job, filters);
 	    configureOutputJob(job);
 	    
 	    // Added by WuGang 2010-05-25
@@ -158,7 +187,8 @@ public class RDFSReasoner extends Configured implements Tool {
 		long derivation = 0;
 
 		// RDFS subproperty inheritance reasoning
-		job = createNewJob("RDFS subproperty inheritance reasoning", "FILTER_ONLY_HIDDEN");
+//		job = createNewJob("RDFS subproperty inheritance reasoning", "FILTER_ONLY_HIDDEN");
+		job = createNewJob("RDFS subproperty inheritance reasoning", new HashSet<Integer>());
 		job.setMapperClass(RDFSSubPropInheritMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
@@ -169,10 +199,12 @@ public class RDFSReasoner extends Configured implements Tool {
 //TODO:		configureOutputJob(job, args[0], "dir-rdfs-derivation/dir-subprop-inherit");
 		job.waitForCompletion(true);
 		long propInheritanceDerivation = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
+		derivation += propInheritanceDerivation;
 
 		
 		// RDFS subproperty domain and range reasoning
-		job = createNewJob("RDFS subproperty domain and range reasoning", "FILTER_ONLY_HIDDEN");
+//		job = createNewJob("RDFS subproperty domain and range reasoning", "FILTER_ONLY_HIDDEN");
+		job = createNewJob("RDFS subproperty domain and range reasoning", new HashSet<Integer>());
 		job.setMapperClass(RDFSSubPropDomRangeMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);	// Modified by WuGang, 2010-08-26
 		job.setMapOutputValueClass(LongWritable.class);
@@ -184,27 +216,18 @@ public class RDFSReasoner extends Configured implements Tool {
 //TODO:		configureOutputJob(job, args[0], "dir-rdfs-derivation/dir-subprop-domain-range");
 		job.waitForCompletion(true);
 		long domRangeDerivation = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
-
+		derivation += domRangeDerivation;
 		
 		// RDFS cleaning up subprop duplicates
-		// 这里估计是有问题啊，需要看一下Mapper和Reducer的输出是否是文件系统！！！！！！！！！！！！！！！！！！！！！！！！！
-		if (propInheritanceDerivation > 0 || domRangeDerivation > 0) {
-			job = createNewJob("RDFS cleaning up subprop duplicates", "FILTER_ONLY_HIDDEN");
-			job.setMapperClass(SwapTriplesMapper.class);
-			job.setMapOutputKeyClass(Triple.class);
-			job.setMapOutputValueClass(TripleSource.class);
-			job.setReducerClass(DelDuplicatesReducer.class);
-			job.getConfiguration().setInt("reasoner.filterStep", step - 2);
-//TODO:			configureOutputJob(job, args[0], "dir-rdfs-output/dir-subprop-filtered-" + step);
-		    job.waitForCompletion(true);
-		    derivation = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
-		} else {
-			derivation = 0;
-		}
-	    FileSystem.get(job.getConfiguration()).delete(new Path(args[0],"dir-rdfs-derivation/"), true);
+		// We remove it for simplicity. That means we will not support stop and restart from breakpoints 
+		
+		
 
 	    //RDFS subclass reasoning
-		job = createNewJob("RDFS subclass reasoning", "FILTER_ONLY_TYPE_SUBCLASS");
+//		job = createNewJob("RDFS subclass reasoning", "FILTER_ONLY_TYPE_SUBCLASS");
+		Set<Integer> filters = new HashSet<Integer>();
+		filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBCLASS);
+		job = createNewJob("RDFS subclass reasoning", filters);
 		job.setMapperClass(RDFSSubclasMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
@@ -225,7 +248,12 @@ public class RDFSReasoner extends Configured implements Tool {
 	    
 		//Apply special derivations
 		if (specialTriples > 0) {
-		    job = createNewJob("RDFS special properties reasoning", "FILTER_ONLY_OTHER_SUBCLASS_SUBPROP");
+			filters.clear();
+			filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBCLASS);
+			filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
+			filters.add(TriplesUtils.DATA_TRIPLE);
+//		    job = createNewJob("RDFS special properties reasoning", "FILTER_ONLY_OTHER_SUBCLASS_SUBPROP");
+			job = createNewJob("RDFS special properties reasoning", filters);
 			job.setMapperClass(RDFSSpecialPropsMapper.class);
 			job.setMapOutputKeyClass(BytesWritable.class);
 			job.setMapOutputValueClass(LongWritable.class);
