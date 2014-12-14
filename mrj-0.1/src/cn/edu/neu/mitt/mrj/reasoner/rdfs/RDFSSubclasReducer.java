@@ -174,6 +174,7 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 	
 	@Override
 	public void setup(Context context) throws IOException {
+		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
 
 		if (subclassSchemaTriples == null) {
 			CassandraDB db;

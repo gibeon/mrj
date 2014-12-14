@@ -80,7 +80,8 @@ public class RDFSReasoner extends Configured implements Tool {
 	private void configureInputJob(Job job, Set<Integer> filters) {
 		//Set the input
         ConfigHelper.setInputInitialAddress(job.getConfiguration(), "localhost");
-        ConfigHelper.setInputRpcPort(job.getConfiguration(), "9160");
+        // Should not use 9160 port in cassandra 2.1.2 because new cql3 port is 9042, please refer to conf/cassandra.yaml
+        //ConfigHelper.setInputRpcPort(job.getConfiguration(), "9160");	 
         ConfigHelper.setInputPartitioner(job.getConfiguration(), "Murmur3Partitioner");
         ConfigHelper.setInputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
         if (filters.size() == 0){
@@ -137,6 +138,9 @@ public class RDFSReasoner extends Configured implements Tool {
         }
         CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), CQL_PAGE_ROW_SIZE);
         job.setInputFormatClass(CqlInputFormat.class);
+	    System.out.println("ConfigHelper.getInputSplitSize - input: " + ConfigHelper.getInputSplitSize(job.getConfiguration()));
+	    System.out.println("CqlConfigHelper.getInputPageRowSize - input: " + CqlConfigHelper.getInputPageRowSize(job.getConfiguration()));
+
 	}
 	
 	
@@ -208,7 +212,7 @@ public class RDFSReasoner extends Configured implements Tool {
 		job.setMapperClass(RDFSSubPropDomRangeMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);	// Modified by WuGang, 2010-08-26
 		job.setMapOutputValueClass(LongWritable.class);
-		job.setPartitionerClass(MyHashPartitioner.class);	// Is this ok?
+		//job.setPartitionerClass(MyHashPartitioner.class);	// Is this ok? seems not necessary
 		job.setReducerClass(RDFSSubpropDomRangeReducer.class);
 		job.getConfiguration().setInt("reasoner.step", ++step);
 		job.getConfiguration().setInt("lastExecution.step", lastExecutionDomRange);

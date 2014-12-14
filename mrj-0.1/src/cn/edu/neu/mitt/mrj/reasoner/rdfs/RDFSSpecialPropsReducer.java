@@ -108,6 +108,8 @@ public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable
 
 	@Override
 	public void setup(Context context) {		
+		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+
 		source.setDerivation(TripleSource.RDFS_DERIVED);
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));
 	}

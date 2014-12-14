@@ -45,6 +45,7 @@ public class ImportTriplesReconstructReducerToCassandra extends
 	@Override
 	protected void setup(org.apache.hadoop.mapreduce.Reducer<LongWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
 			throws IOException, InterruptedException {
+		CassandraDB.setConfigLocation();	// 2014-12-11, Have to manually setup the config yaml
 		keys = new LinkedHashMap<String, ByteBuffer>();
 	}
 

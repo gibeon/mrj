@@ -40,6 +40,21 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 	private boolean hasSchemaChanged = false;
 	
 	public void map(Long key, Row row,  Context context) throws IOException, InterruptedException {
+		// Some debug codes
+//		try {
+//			System.out.println("-------------------->" + "key: " + key + "; value: " + row.toString());
+//		    System.out.println("ConfigHelper.getInputSplitSize - out: " + ConfigHelper.getInputSplitSize(context.getConfiguration()));
+//		    System.out.println("CqlConfigHelper.getInputPageRowSize - out: " + CqlConfigHelper.getInputPageRowSize(context.getConfiguration()));
+//
+//			System.out.println("Input format class: " + context.getInputFormatClass().getName());
+//			for (String location: context.getInputSplit().getLocations())
+//				System.out.println("getInputSplit Locations: " + location);
+//			System.out.println("getInputSplit Length: " + context.getInputSplit().getLength());
+//		} catch (ClassNotFoundException e) {
+//			e.printStackTrace();
+//		}
+
+		
 		int step = row.getInt(CassandraDB.COLUMN_INFERRED_STEPS);
 		if (!hasSchemaChanged && step <= previousExecutionStep)
 			return;
@@ -103,5 +118,15 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 		} catch (TException e) {
 			e.printStackTrace();
 		}
+		
+		// Some debug codes
+//		System.out.println("In mapper setup, peviousExecutionStep= " + previousExecutionStep + " and hasSchemaChanged status: " + hasSchemaChanged);
+//		System.out.println("Input split: " + context.getInputSplit());
+//		try {
+//			System.out.println("Input split length: " + context.getInputSplit().getLength());
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+
 	}
 }

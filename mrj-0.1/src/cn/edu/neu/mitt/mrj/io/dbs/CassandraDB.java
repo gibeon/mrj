@@ -77,7 +77,17 @@ public class CassandraDB {
     public static final String COLUMN_LABEL = "label";	// mrjks.resources.label
     
     public static final String DEFAULT_HOST = "localhost";
-    public static final String DEFAULT_PORT = "9160";
+    public static final String DEFAULT_PORT = "9160";	// in version 2.1.2, cql3 port is 9042
+    
+	// 2014-12-11, Very strange, this works around.
+    public static final String CONFIG_LOCATION = "file:///home/gibeon/Software/apache-cassandra-2.1.2/conf/cassandra.yaml";
+    public static void setConfigLocation(){
+    	setConfigLocation(CONFIG_LOCATION);
+    }
+    public static void setConfigLocation(String location){
+    	System.setProperty("cassandra.config", location);
+    }
+
 
 	
 	private Cassandra.Iface client;

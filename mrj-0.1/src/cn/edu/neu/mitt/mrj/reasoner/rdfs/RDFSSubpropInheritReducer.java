@@ -144,6 +144,8 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 
 	@Override
 	public void setup(Context context) throws IOException {
+		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+
 		if (subpropSchemaTriples == null) {
 			CassandraDB db;
 			try {
