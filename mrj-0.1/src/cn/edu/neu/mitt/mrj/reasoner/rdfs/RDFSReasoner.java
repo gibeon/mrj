@@ -137,6 +137,7 @@ public class RDFSReasoner extends Configured implements Tool {
             		" ALLOW FILTERING");        	
         }
         CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), CQL_PAGE_ROW_SIZE);
+        ConfigHelper.setInputSplitSize(job.getConfiguration(), 180);
         job.setInputFormatClass(CqlInputFormat.class);
 	    System.out.println("ConfigHelper.getInputSplitSize - input: " + ConfigHelper.getInputSplitSize(job.getConfiguration()));
 	    System.out.println("CqlConfigHelper.getInputPageRowSize - input: " + CqlConfigHelper.getInputPageRowSize(job.getConfiguration()));
@@ -176,7 +177,9 @@ public class RDFSReasoner extends Configured implements Tool {
 	    
 	    // Added by WuGang 2010-05-25
 	    System.out.println("创建了任务-" + jobName);
-	    
+	    System.out.println("ConfigHelper.getInputSplitSize - out: " + ConfigHelper.getInputSplitSize(job.getConfiguration()));
+	    System.out.println("CqlConfigHelper.getInputPageRowSize - out: " + CqlConfigHelper.getInputPageRowSize(job.getConfiguration()));
+
 	    return job;
 	}
 
