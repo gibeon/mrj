@@ -175,7 +175,7 @@ public class RDFSReasoner extends Configured implements Tool {
 	    configureInputJob(job, filters);
 	    configureOutputJob(job);
 	    
-	    // Added by WuGang 2010-05-25
+	    // Added by WuGang 2010-05-25 
 	    System.out.println("创建了任务-" + jobName);
 	    System.out.println("ConfigHelper.getInputSplitSize - out: " + ConfigHelper.getInputSplitSize(job.getConfiguration()));
 	    System.out.println("CqlConfigHelper.getInputPageRowSize - out: " + CqlConfigHelper.getInputPageRowSize(job.getConfiguration()));
