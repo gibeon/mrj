@@ -79,6 +79,9 @@ public class CassandraDB {
     public static final String DEFAULT_HOST = "localhost";
     public static final String DEFAULT_PORT = "9160";	// in version 2.1.2, cql3 port is 9042
     
+	public static final String CQL_PAGE_ROW_SIZE = "10";	//3
+
+    
 	// 2014-12-11, Very strange, this works around.
     public static final String CONFIG_LOCATION = "file:///home/gibeon/Software/apache-cassandra-2.1.2/conf/cassandra.yaml";
     public static void setConfigLocation(){
@@ -205,6 +208,31 @@ public class CassandraDB {
 		return client;
 	}
 	
+	
+	public boolean checkTransitive(){
+		boolean result = false;
+		//SELECT COUNT(*) FROM users;
+		String query = "SELECT COUNT(*) FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
+				" WHERE " + COLUMN_TRIPLE_TYPE + " = " + TriplesUtils.TRANSITIVE_TRIPLE;
+		
+		try {
+			CqlResult cqlresult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+			if (cqlresult.getNum() > 0)
+				result = true;
+		} catch (InvalidRequestException e) {
+			e.printStackTrace();
+		} catch (UnavailableException e) {
+			e.printStackTrace();
+		} catch (TimedOutException e) {
+			e.printStackTrace();
+		} catch (SchemaDisagreementException e) {
+			e.printStackTrace();
+		} catch (TException e) {
+			e.printStackTrace();
+		}
+		
+		return result;
+	}
 	
 	public void insertResources(long id, String label) throws InvalidRequestException, TException{
         String query = "INSERT INTO " + COLUMNFAMILY_RESOURCES +  
@@ -421,6 +449,9 @@ public class CassandraDB {
 			filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
 			db.loadSetIntoMemory(schemaTriples, filters, 0);
 			System.out.println(schemaTriples);
+			
+			System.out.println("Transitive: " + db.checkTransitive());
+			
 	        System.exit(0);
 		} catch (TTransportException e) {
 			e.printStackTrace();
