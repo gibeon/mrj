@@ -106,30 +106,35 @@ public class OWLNotRecursiveMapper extends Mapper<Long, Row, BytesWritable, Long
 			CassandraDB db = new CassandraDB();
 	
 			if (schemaFunctionalProperties == null) {
+				schemaFunctionalProperties = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_FUNCTIONAL_PROPERTY);
 				hasSchemaChanged = db.loadSetIntoMemory(schemaFunctionalProperties, filters, previousDerivation);
 			}
 			
 			if (schemaInverseFunctionalProperties == null) {
+				schemaInverseFunctionalProperties = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_INVERSE_FUNCTIONAL_PROPERTY);
 				hasSchemaChanged = db.loadSetIntoMemory(schemaInverseFunctionalProperties, filters, previousDerivation);
 			}
 			
 			if (schemaSymmetricProperties == null) {
+				schemaSymmetricProperties = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SYMMETRIC_PROPERTY);
 				hasSchemaChanged = db.loadSetIntoMemory(schemaSymmetricProperties, filters, previousDerivation);
 			}
 			
 			if (schemaInverseOfProperties == null) {
+				schemaInverseOfProperties = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_INVERSE_OF);
 				hasSchemaChanged = db.loadSetIntoMemory(schemaInverseOfProperties, filters, previousDerivation);
 			}
 			
 			if (schemaTransitiveProperties == null) {
+				schemaTransitiveProperties = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_TRANSITIVE_PROPERTY);
 				hasSchemaChanged = db.loadSetIntoMemory(schemaTransitiveProperties, filters, previousDerivation);

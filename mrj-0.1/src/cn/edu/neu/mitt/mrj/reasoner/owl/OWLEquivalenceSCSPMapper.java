@@ -91,12 +91,14 @@ public class OWLEquivalenceSCSPMapper extends Mapper<Long, Row, LongWritable, By
 			db = new CassandraDB();
 			
 			if (subpropSchemaTriples == null) {
+				subpropSchemaTriples = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
 				db.loadSetIntoMemory(subpropSchemaTriples, filters, -1);
 			}
 			
 			if (subclassSchemaTriples == null) {
+				subclassSchemaTriples = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBCLASS);
 				db.loadSetIntoMemory(subclassSchemaTriples, filters, -1);
