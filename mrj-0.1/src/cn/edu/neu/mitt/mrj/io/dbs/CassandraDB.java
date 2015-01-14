@@ -208,17 +208,21 @@ public class CassandraDB {
 		return client;
 	}
 	
-	
-	public boolean checkTransitive(){
-		boolean result = false;
-		//SELECT COUNT(*) FROM users;
+	//TriplesUtils.SYNONYMS_TABLE
+	//TriplesUtils.TRANSITIVE_TRIPLE
+	//TriplesUtils.DATA_TRIPLE_SAME_AS
+	/**
+	 * Get the row count according to the triple type.
+	 * @return row count.
+	 */
+	public long getRowCountAccordingTripleType(int tripletype){
 		String query = "SELECT COUNT(*) FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
-				" WHERE " + COLUMN_TRIPLE_TYPE + " = " + TriplesUtils.TRANSITIVE_TRIPLE;
-		
+				" WHERE " + COLUMN_TRIPLE_TYPE + " = " + tripletype;
+
+		long num = 0;
 		try {
 			CqlResult cqlresult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
-			if (cqlresult.getNum() > 0)
-				result = true;
+			num = ByteBufferUtil.toLong(cqlresult.getRows().get(0).getColumns().get(0).value);
 		} catch (InvalidRequestException e) {
 			e.printStackTrace();
 		} catch (UnavailableException e) {
@@ -231,8 +235,37 @@ public class CassandraDB {
 			e.printStackTrace();
 		}
 		
-		return result;
+		return num;
 	}
+	
+
+	/**
+	 * Get the row count according to the type of rule.
+	 * @return row count.
+	 */
+	public long getRowCountAccordingRule(int rule){
+		String query = "SELECT COUNT(*) FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
+				" WHERE " + COLUMN_RULE + " = " + rule + " ALLOW FILTERING";	// must use ALLOW FILTERING 
+
+		long num = 0;
+		try {
+			CqlResult cqlresult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+			num = ByteBufferUtil.toLong(cqlresult.getRows().get(0).getColumns().get(0).value);
+		} catch (InvalidRequestException e) {
+			e.printStackTrace();
+		} catch (UnavailableException e) {
+			e.printStackTrace();
+		} catch (TimedOutException e) {
+			e.printStackTrace();
+		} catch (SchemaDisagreementException e) {
+			e.printStackTrace();
+		} catch (TException e) {
+			e.printStackTrace();
+		}
+		
+		return num;
+	}
+
 	
 	public void insertResources(long id, String label) throws InvalidRequestException, TException{
         String query = "INSERT INTO " + COLUMNFAMILY_RESOURCES +  
@@ -302,9 +335,13 @@ public class CassandraDB {
     	// the length of boolean type in cassandra is one byte!!!!!!!!
         keys.put(CassandraDB.COLUMN_IS_LITERAL, 
         		triple.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));
-        keys.put(CassandraDB.COLUMN_TRIPLE_TYPE, 
-        		ByteBufferUtil.bytes(
-        				TriplesUtils.getTripleType(source, triple.getSubject(), triple.getPredicate(), triple.getObject())));
+        int tripletype = TriplesUtils.DATA_TRIPLE;
+        if (triple.getType()==TriplesUtils.OWL_HORST_SYNONYMS_TABLE){
+        	tripletype = TriplesUtils.SYNONYMS_TABLE;	// In this way, we can provide a special triple type for triples in synonyms table 
+        }else{
+        	tripletype = TriplesUtils.getTripleType(source, triple.getSubject(), triple.getPredicate(), triple.getObject());
+        }
+        keys.put(CassandraDB.COLUMN_TRIPLE_TYPE, ByteBufferUtil.bytes(tripletype));	// Modified by WuGang 20150109
         keys.put(CassandraDB.COLUMN_RULE, ByteBufferUtil.bytes((int)triple.getType()));	// int
         keys.put(CassandraDB.COLUMN_V1, ByteBufferUtil.bytes(triple.getRsubject()));	// long
         keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(triple.getRpredicate()));	// long
@@ -450,7 +487,7 @@ public class CassandraDB {
 			db.loadSetIntoMemory(schemaTriples, filters, 0);
 			System.out.println(schemaTriples);
 			
-			System.out.println("Transitive: " + db.checkTransitive());
+			System.out.println("Transitive: " + db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE));
 			
 	        System.exit(0);
 		} catch (TTransportException e) {

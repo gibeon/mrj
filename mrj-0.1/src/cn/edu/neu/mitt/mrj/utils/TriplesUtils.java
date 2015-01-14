@@ -65,6 +65,9 @@ public class TriplesUtils {
 	public static final long OWL_HORST_14b = 0x14b;
 	public static final long OWL_HORST_15 = 0x15;
 	public static final long OWL_HORST_16 = 0x16;
+	// Added by Wugang 20150108, same as synonyms table, related to 5,6,7,9,10.11
+	public static final long OWL_HORST_SYNONYMS_TABLE = 0x56791011;	 
+
 	
 	/***** Standard URIs IDs *****/
 	public static final long RDF_TYPE = 0;
@@ -148,7 +151,9 @@ public class TriplesUtils {
 	public static final int SCHEMA_TRIPLE_SOME_VALUES_FROM = 18;
 	public static final int SCHEMA_TRIPLE_ALL_VALUES_FROM = 19;
 	public static final int TRANSITIVE_TRIPLE = 20;
-	
+	// Added by Wugang 20150108, same as synonyms table, related to 5,6,7,9,10.11
+	public static final int SYNONYMS_TABLE = 56791011;	 
+
 	//FILE PREFIXES
 	public static final String DIR_PREFIX = "dir-";
 	public static final String OWL_PREFIX = "owl-";
