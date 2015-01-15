@@ -465,6 +465,13 @@ public class OWLReasoner extends Configured implements Tool {
 			job.setReducerClass(OWLAllSomeValuesReducer.class);
 			
 			job.waitForCompletion(true);
+			
+			// Added by Wugang 20150111
+			countRule15 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_15) - countRule15;	// see OWLAllSomeValuesReducer
+			countRule16 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_16) - countRule16;	// see OWLAllSomeValuesReducer
+			totalDerivation =  countRule15 +  countRule16;
+
+			derivedNewStatements = (totalDerivation > 0);
 		}
 		
 		// Added by Wugang 20150111
