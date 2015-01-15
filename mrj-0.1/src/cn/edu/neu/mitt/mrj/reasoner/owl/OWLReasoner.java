@@ -234,6 +234,7 @@ public class OWLReasoner extends Configured implements Tool {
 //		System.out.println("ÔÚinferTransitivityStatementsÀïÍ·¡£");
 		
 		// We'll not use filesystem but db.getTransitiveStatementsCount()
+		long derivation = 0;
 		int level = 0;
 		long beforeInferCount = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE);
 		while ((beforeInferCount > 0) && derivedNewStatements && shouldInferTransitivity) {
@@ -261,9 +262,9 @@ public class OWLReasoner extends Configured implements Tool {
 			// About duplication, we will modify the checkTransitivity to return transitive triple counts
 			// and then do subtraction.
 
+			derivation = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE) - beforeInferCount;
+			derivedNewStatements = (derivation > 0);
 		}
-		
-		long derivation = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE) - beforeInferCount;
 		
 		previousTransitiveDerivation = step;
 
