@@ -71,24 +71,53 @@ public class MapReduceReasonerJobConfig {
 	        		CassandraDB.COLUMN_TRIPLE_TYPE + " = " + filters.toArray()[0] +
 	        		" ALLOW FILTERING");
         }else{
-        	String strFilter = filters.toString();
-        	String strInFilterClause = strFilter.substring(1, strFilter.length()-1);	// remove "[" and "]" characters of Set.toString()
-        	strInFilterClause = "(" + strInFilterClause + ")";
-            CqlConfigHelper.setInputCql(job.getConfiguration(), 
-            		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
-            		" WHERE TOKEN(" + 
-            		CassandraDB.COLUMN_SUB + ", " + 
-            		CassandraDB.COLUMN_PRE + ", " + 
-            		CassandraDB.COLUMN_OBJ + ", " + 
-            		CassandraDB.COLUMN_IS_LITERAL +
-            		") > ? AND TOKEN(" + 
-            		CassandraDB.COLUMN_SUB + ", " + 
-            		CassandraDB.COLUMN_PRE + ", " + 
-    				CassandraDB.COLUMN_OBJ + ", " + 
-            		CassandraDB.COLUMN_IS_LITERAL + 
-            		") <= ? AND " + 
-            		CassandraDB.COLUMN_TRIPLE_TYPE + " IN " + strInFilterClause +
-            		" ALLOW FILTERING");        	
+        	// The support of IN clause in cassandra db's SELECT is restricted. 
+        	// So we have to try to manually cluster the values in the filters.
+        	//     see http://www.datastax.com/documentation/cql/3.1/cql/cql_reference/select_r.html#reference_ds_d35_v2q_xj__selectIN
+        	System.out.println("<<<<<<<<The support of IN clause in cassandra db's SELECT is restricted.>>>>>>>>>");
+        	System.out.println("<<<<<<<<So we have to try to manually cluster the values in the filters.>>>>>>>>>");
+        	
+        	Integer max = java.util.Collections.max(filters);
+        	Integer min = java.util.Collections.min(filters);
+
+        	
+	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
+	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+	        		" WHERE TOKEN(" + 
+	        		CassandraDB.COLUMN_SUB + ", " + 
+	        		CassandraDB.COLUMN_PRE + ", " + 
+	        		CassandraDB.COLUMN_OBJ + ", " + 
+	        		CassandraDB.COLUMN_IS_LITERAL +
+	        		") > ? AND TOKEN(" + 
+	        		CassandraDB.COLUMN_SUB + ", " + 
+	        		CassandraDB.COLUMN_PRE + ", " + 
+					CassandraDB.COLUMN_OBJ + ", " + 
+	        		CassandraDB.COLUMN_IS_LITERAL + 
+	        		") <= ? AND " +
+	        		CassandraDB.COLUMN_TRIPLE_TYPE + " >= " + min + " AND " +
+	        		CassandraDB.COLUMN_TRIPLE_TYPE + " <= " + max +
+	        		" ALLOW FILTERING");
+        	
+//        	String strFilter = filters.toString();
+//        	String strInFilterClause = strFilter.substring(1, strFilter.length()-1);	// remove "[" and "]" characters of Set.toString()
+//        	strInFilterClause = "(" + strInFilterClause + ")";
+//            CqlConfigHelper.setInputCql(job.getConfiguration(), 
+//            		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+//            		" WHERE TOKEN(" + 
+//            		CassandraDB.COLUMN_SUB + ", " + 
+//            		CassandraDB.COLUMN_PRE + ", " + 
+//            		CassandraDB.COLUMN_OBJ + ", " + 
+//            		CassandraDB.COLUMN_IS_LITERAL +
+//            		") > ? AND TOKEN(" + 
+//            		CassandraDB.COLUMN_SUB + ", " + 
+//            		CassandraDB.COLUMN_PRE + ", " + 
+//    				CassandraDB.COLUMN_OBJ + ", " + 
+//            		CassandraDB.COLUMN_IS_LITERAL + 
+//            		") <= ? AND " + 
+//            		CassandraDB.COLUMN_TRIPLE_TYPE + " IN " + strInFilterClause +
+//            		" ALLOW FILTERING");        
+            
+            
         }
         CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), CassandraDB.CQL_PAGE_ROW_SIZE);
         ConfigHelper.setInputSplitSize(job.getConfiguration(), 180);

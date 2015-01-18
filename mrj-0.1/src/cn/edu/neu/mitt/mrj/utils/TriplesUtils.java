@@ -129,9 +129,9 @@ public class TriplesUtils {
 	public static final int DATA_TRIPLE_TYPE = 5;
 	public static final int SCHEMA_TRIPLE_RANGE_PROPERTY = 1;
 	public static final int SCHEMA_TRIPLE_DOMAIN_PROPERTY = 2;
-	public static final int SCHEMA_TRIPLE_SUBPROPERTY = 3;
+	public static final int SCHEMA_TRIPLE_SUBPROPERTY = 103;			// Old 3,  We cluster SC SP EC EP, Since OWLEquivalenceSCSPMapper require input from
 	public static final int SCHEMA_TRIPLE_MEMBER_SUBPROPERTY = 20;
-	public static final int SCHEMA_TRIPLE_SUBCLASS = 4;
+	public static final int SCHEMA_TRIPLE_SUBCLASS = 104;				// Old 4, We cluster SC SP EC EP, Since OWLEquivalenceSCSPMapper require input from
 	public static final int SCHEMA_TRIPLE_RESOURCE_SUBCLASS = 21;
 	public static final int SCHEMA_TRIPLE_LITERAL_SUBCLASS = 22;
 	
@@ -143,8 +143,8 @@ public class TriplesUtils {
 	public static final int DATA_TRIPLE_SAME_AS = 10;
 	public static final int SCHEMA_TRIPLE_INVERSE_OF = 11;
 	public static final int DATA_TRIPLE_CLASS_TYPE = 12;
-	public static final int DATA_TRIPLE_PROPERTY_TYPE = 13;
-	public static final int SCHEMA_TRIPLE_EQUIVALENT_CLASS = 14;
+	public static final int DATA_TRIPLE_PROPERTY_TYPE = 113; 		// Old 13, We cluster SC SP EC EP, Since OWLEquivalenceSCSPMapper require input from
+	public static final int SCHEMA_TRIPLE_EQUIVALENT_CLASS = 114;	// Old 14, We cluster SC SP EC EP, Since OWLEquivalenceSCSPMapper require input from
 	public static final int SCHEMA_TRIPLE_EQUIVALENT_PROPERTY = 15;
 	public static final int DATA_TRIPLE_HAS_VALUE = 16;
 	public static final int SCHEMA_TRIPLE_ON_PROPERTY = 17;
