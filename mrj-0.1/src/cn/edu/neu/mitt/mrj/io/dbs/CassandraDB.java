@@ -150,20 +150,22 @@ public class CassandraDB {
             TException {
     	
         String query = "CREATE TABLE " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
-                          " ( " + 
-                          COLUMN_SUB + " bigint, " +			// partition key
-                          COLUMN_PRE + " bigint, " +			// partition key
-                          COLUMN_OBJ + " bigint, " +			// partition key
-                          COLUMN_IS_LITERAL + " boolean, " +	// partition key
-                          COLUMN_RULE + " int, " +
-                          COLUMN_V1 + " bigint, " +
-                          COLUMN_V2 + " bigint, " +
-                          COLUMN_V3 + " bigint, " +
-                          COLUMN_TRIPLE_TYPE + " int, " +
-                          COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
-                          "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +  ", " + COLUMN_IS_LITERAL + "), " +
-                          COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +  ", " + COLUMN_TRIPLE_TYPE +
-                          " ) ) ";
+                " ( " + 
+                COLUMN_SUB + " bigint, " +			// partition key
+                COLUMN_PRE + " bigint, " +			// partition key
+                COLUMN_OBJ + " bigint, " +			// partition key
+                COLUMN_IS_LITERAL + " boolean, " +	// partition key
+                COLUMN_TRIPLE_TYPE + " int, " +
+                COLUMN_RULE + " int, " +
+                COLUMN_V1 + " bigint, " +
+                COLUMN_V2 + " bigint, " +
+                COLUMN_V3 + " bigint, " +
+//                COLUMN_TRIPLE_TYPE + " int, " +
+                COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
+                "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +  ", " + COLUMN_IS_LITERAL + "), " +
+                COLUMN_TRIPLE_TYPE + ", " + COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +  
+                //", " + COLUMN_TRIPLE_TYPE +
+                " ) ) ";
 
         try {
             logger.info("set up table " + COLUMNFAMILY_JUSTIFICATIONS);
@@ -480,6 +482,7 @@ public class CassandraDB {
 		try {
 			CassandraDB db = new CassandraDB("localhost", 9160);
 			db.init();
+			db.createIndexOnTripleType();
 //			db.insertResources(100, "Hello World!");
 			Set<Long> schemaTriples = new HashSet<Long>();
 			Set<Integer> filters = new HashSet<Integer>();
