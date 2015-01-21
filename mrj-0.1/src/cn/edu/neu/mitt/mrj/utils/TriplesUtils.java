@@ -129,9 +129,9 @@ public class TriplesUtils {
 	public static final int DATA_TRIPLE_TYPE = 5;
 	public static final int SCHEMA_TRIPLE_RANGE_PROPERTY = 1;
 	public static final int SCHEMA_TRIPLE_DOMAIN_PROPERTY = 2;
-	public static final int SCHEMA_TRIPLE_SUBPROPERTY = 103;			// Old 3,  We cluster SC SP EC EP, Since OWLEquivalenceSCSPMapper require input from
+	public static final int SCHEMA_TRIPLE_SUBPROPERTY = 103;			// Old value is 3,  We cluster SC SP EC EP, Since OWLEquivalenceSCSPMapper require input from
 	public static final int SCHEMA_TRIPLE_MEMBER_SUBPROPERTY = 20;
-	public static final int SCHEMA_TRIPLE_SUBCLASS = 104;				// Old 4, We cluster SC SP EC EP, Since OWLEquivalenceSCSPMapper require input from
+	public static final int SCHEMA_TRIPLE_SUBCLASS = 104;				// Old value is 4, We cluster SC SP EC EP, Since OWLEquivalenceSCSPMapper require input from
 	public static final int SCHEMA_TRIPLE_RESOURCE_SUBCLASS = 21;
 	public static final int SCHEMA_TRIPLE_LITERAL_SUBCLASS = 22;
 	
