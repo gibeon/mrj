@@ -125,13 +125,11 @@ public class OWLReasoner extends Configured implements Tool {
 			if (!firstCycle && lastDerivationStep == (currentStep - 4))
 				break;
 			currentStep++;
-			System.out.println(">>>>>>>>>>>开始新的循环");
+			System.out.println(">>>>>>>>>>> Start new OWL Reasoner loop <<<<<<<<<<<");
 			long propDerivation = inferPropertiesInheritance(args); 
-			System.out.println("-----------inferPropertiesInheritance结束");
-			
-			
-			derivedTriples = inferTransitivityStatements(args, propDerivation);
-			System.out.println("-----------inferTransitivityStatements结束");
+			System.out.println("----------- End inferPropertiesInheritance");
+			derivedTriples = inferTransitivityStatements(args) + propDerivation;
+			System.out.println("----------- End inferTransitivityStatements结束");
 			
 			if (derivedTriples > 0) lastDerivationStep = currentStep;
 			
@@ -139,7 +137,7 @@ public class OWLReasoner extends Configured implements Tool {
 				break;
 			currentStep++;
 			long sameAsDerivation = inferSameAsStatements(args);
-			System.out.println("-----------inferSameAsStatements结束");
+			System.out.println("----------- End inferSameAsStatements");
 			derivedTriples += sameAsDerivation;
 			if (sameAsDerivation > 0) lastDerivationStep = currentStep;
 			
@@ -228,7 +226,7 @@ public class OWLReasoner extends Configured implements Tool {
 	/*
 	 * Executes rule 4
 	 */
-	private long inferTransitivityStatements(String[] args, long propInheritanceDerivation) 
+	private long inferTransitivityStatements(String[] args) 
 											throws IOException, InterruptedException, ClassNotFoundException {
 		boolean derivedNewStatements = true;
 //		System.out.println("在inferTransitivityStatements里头。");
