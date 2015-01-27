@@ -149,16 +149,24 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 				Collection<Long> inverse = schemaInverseOfProperties.get(predicate);
 				if (inverse != null) {
 					Iterator<Long> itrInverse = inverse.iterator();
-					triple.setPredicate(itrInverse.next());
+					// Added by WuGang, 2015-01-27
+					long derivedPredicate = itrInverse.next();
+					triple.setPredicate(derivedPredicate);		// Only one of the inverse, the others will be completed in outputInverseOf()
+					//triple.setPredicate(itrInverse.next());	// Commented by WuGang 2015-01-27 
 //					context.write(source, triple);
 					CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
 					context.getCounter("OWL derived triples", "inverse of").increment(1);
+					
+					// Moved to here by WuGang, 2015-01-27
+					set.add(derivedPredicate);	// Modified by WuGang 2015-01-27
+					//set.add(predicate);
+					outputInverseOf(subject, object, predicate, set, context);	// Here will complete all the other inverse
 				} else {
 					log.error("Something is wrong here. This should not happen...");
 				}
 				
-				set.add(predicate);
-				outputInverseOf(subject, object, predicate, set, context);	//这个是不是有点儿重复呢？没看懂
+//				set.add(predicate);
+//				outputInverseOf(subject, object, predicate, set, context);	// Here will complete all the other inverse
 			}
 			break;
 		case 4:
@@ -228,6 +236,9 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_INVERSE_OF);
 				schemaInverseOfProperties = db.loadMapIntoMemory(filters);
+				// Added by WuGang 2015-01-27,
+				Map<Long, Collection<Long>> schemaInverseOfProperties_reverse = db.loadMapIntoMemory(filters, true);
+				schemaInverseOfProperties.putAll(schemaInverseOfProperties_reverse);
 			}catch (TTransportException e) {
 				e.printStackTrace();
 			} catch (InvalidRequestException e) {

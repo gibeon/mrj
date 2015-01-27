@@ -45,7 +45,7 @@ public class ImportTriplesDeconstructReducer extends Reducer<Text, LongWritable,
 			
 			// Added by WuGang 2015-01-21, for writing to COLUMNFAMILY_RESOURCE
 			try {
-				db.insertResources(counter, key.toString());
+				db.insertResources(counter-1, key.toString());
 			} catch (InvalidRequestException e) {
 				e.printStackTrace();
 			} catch (TException e) {

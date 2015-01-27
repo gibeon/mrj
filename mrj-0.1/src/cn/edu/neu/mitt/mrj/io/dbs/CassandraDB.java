@@ -376,7 +376,7 @@ public class CassandraDB {
         String query = "SELECT " + COLUMN_SUB + ", " + COLUMN_OBJ + ", " + COLUMN_INFERRED_STEPS +
         		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS +  
                 " WHERE " + COLUMN_TRIPLE_TYPE + " = ? ";
-        System.out.println(query);
+//        System.out.println(query);
         
         CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
 

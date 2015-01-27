@@ -131,6 +131,9 @@ public class OWLNotRecursiveMapper extends Mapper<Long, Row, BytesWritable, Long
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_INVERSE_OF);
 				hasSchemaChanged = db.loadSetIntoMemory(schemaInverseOfProperties, filters, previousDerivation);
+				// Added by WuGang 2015-01-27,
+				boolean hasSchemaChanged1 = db.loadSetIntoMemory(schemaInverseOfProperties, filters, previousDerivation, true);
+				hasSchemaChanged |= hasSchemaChanged1;
 			}
 			
 			if (schemaTransitiveProperties == null) {
