@@ -107,7 +107,9 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 
 		baseLevel = context.getConfiguration().getInt("reasoning.baseLevel", 1) - 1;
 		level = context.getConfiguration().getInt("reasoning.transitivityLevel", -1);
-		source.setDerivation(TripleSource.OWL_DERIVED);
+		// Modified by WuGang 2015-01-28
+		//source.setDerivation(TripleSource.OWL_DERIVED);	
+		source.setDerivation(TripleSource.TRANSITIVE_ENABLED);
 		triple.setObjectLiteral(false);
 	}
 }

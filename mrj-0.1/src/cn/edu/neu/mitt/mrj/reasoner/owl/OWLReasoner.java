@@ -260,8 +260,10 @@ public class OWLReasoner extends Configured implements Tool {
 			// About duplication, we will modify the checkTransitivity to return transitive triple counts
 			// and then do subtraction.
 
-			derivation = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE) - beforeInferCount;
+			long afterInferCount = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE);
+			derivation = afterInferCount - beforeInferCount;
 			derivedNewStatements = (derivation > 0);
+			beforeInferCount = afterInferCount;		// Update beforeInferCount
 		}
 		
 		previousTransitiveDerivation = step;
