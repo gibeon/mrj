@@ -83,7 +83,10 @@ public class OWLSameAsReducer extends Reducer<LongWritable, BytesWritable, Map<S
 
 		oValue.setObjectLiteral(false);
 		oValue.setPredicate(TriplesUtils.OWL_SAME_AS);
-		oValue.setType(TriplesUtils.OWL_SYMMETRIC_PROPERTY);	// Added by WuGang 20150108
+		// Added by WuGang 20150130, 
+		//   A special rule for build a synonyms table (make it filterable by tripletype in the future) 
+		//   which in fact not belong to OWL HORST.
+		oValue.setType(TriplesUtils.OWL_HORST_SYNONYMS_TABLE);	
 		
 		oKey.setDerivation(TripleSource.OWL_DERIVED);
 		oKey.setStep(context.getConfiguration().getInt("reasoner.step", 0));

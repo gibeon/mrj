@@ -129,9 +129,9 @@ public class OWLReasoner extends Configured implements Tool {
 			long propDerivation = inferPropertiesInheritance(args); 
 			System.out.println("----------- End inferPropertiesInheritance");
 			derivedTriples = inferTransitivityStatements(args) + propDerivation;
-			System.out.println("----------- End inferTransitivityStatements½áÊø");
-			
-			if (derivedTriples > 0) lastDerivationStep = currentStep;
+			System.out.println("----------- End inferTransitivityStatements");
+			if (derivedTriples > 0) 
+				lastDerivationStep = currentStep;
 			
 			if (!firstCycle && lastDerivationStep == (currentStep - 4))
 				break;
@@ -139,7 +139,8 @@ public class OWLReasoner extends Configured implements Tool {
 			long sameAsDerivation = inferSameAsStatements(args);
 			System.out.println("----------- End inferSameAsStatements");
 			derivedTriples += sameAsDerivation;
-			if (sameAsDerivation > 0) lastDerivationStep = currentStep;
+			if (sameAsDerivation > 0) 
+				lastDerivationStep = currentStep;
 			
 			if (!firstCycle && lastDerivationStep == (currentStep - 4))
 				break;
