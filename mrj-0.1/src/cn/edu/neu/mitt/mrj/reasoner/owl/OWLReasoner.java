@@ -281,6 +281,7 @@ public class OWLReasoner extends Configured implements Tool {
 		try {
 			boolean derivedSynonyms = true;
 			int derivationStep = 1;
+			long previousStepDerived = 0; 	// Added by WuGang 2015-01-30
 			while (derivedSynonyms) {
 				if (db.getRowCountAccordingTripleType(TriplesUtils.DATA_TRIPLE_SAME_AS)==0)	// We need not to infer on SameAs
 					return 0;
@@ -303,8 +304,11 @@ public class OWLReasoner extends Configured implements Tool {
 				
 //				System.out.println("In FilesOWLReasoner: " + job.getCounters().findCounter("synonyms", "replacements").getValue());
 				Counter cDerivedSynonyms = job.getCounters().findCounter("synonyms","replacements");
-				derivedTriples += cDerivedSynonyms.getValue();
-				derivedSynonyms = cDerivedSynonyms.getValue() > 0;				
+				long currentStepDerived = cDerivedSynonyms.getValue();	// Added by WuGang 2015-01-30
+				derivedTriples += currentStepDerived;
+				derivedSynonyms = (currentStepDerived - previousStepDerived) > 0;	// Modified by WuGang 2015-01-30
+				//derivedSynonyms = currentStepDerived > 0;				
+				previousStepDerived = currentStepDerived;	// Added by WuGang 2015-01-30
 			}
 			
 			//Filter the table.
