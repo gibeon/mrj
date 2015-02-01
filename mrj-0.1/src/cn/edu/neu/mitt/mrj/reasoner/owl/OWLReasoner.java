@@ -146,7 +146,7 @@ public class OWLReasoner extends Configured implements Tool {
 				break;
 			currentStep++;
 			long equivalenceDerivation = inferEquivalenceStatements(args); 
-			System.out.println("-----------inferEquivalenceStatements½áÊø");
+			System.out.println("-----------inferEquivalenceStatements");
 			derivedTriples += equivalenceDerivation;
 			if (equivalenceDerivation > 0) lastDerivationStep = currentStep;
 			
