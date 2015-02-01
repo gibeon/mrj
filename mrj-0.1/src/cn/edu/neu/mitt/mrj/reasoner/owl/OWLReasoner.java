@@ -430,7 +430,8 @@ public class OWLReasoner extends Configured implements Tool {
 				numMapTasks,
 				numReduceTasks, true, true);		
 		job.getConfiguration().setInt("maptasks", Math.max(job.getConfiguration().getInt("maptasks", 0) / 10, 1));
-		
+		job.getConfiguration().setInt("reasoner.step", step);
+
 		job.setMapperClass(OWLEquivalenceSCSPMapper.class);
 		job.setMapOutputKeyClass(LongWritable.class);
 		job.setMapOutputValueClass(BytesWritable.class);
