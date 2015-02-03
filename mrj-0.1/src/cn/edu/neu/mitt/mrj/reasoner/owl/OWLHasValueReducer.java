@@ -77,7 +77,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 							}
 						}
 					}
-				} else { //Rule 14a
+				} else if (v[0] == 1) { //Rule 14a
 //					System.out.println("In OWLHasValueReducer for 14a: ");	// Added by Wugang
 					long predicate = NumberUtils.decodeLong(v, 1);
 					long object = NumberUtils.decodeLong(v, 9);

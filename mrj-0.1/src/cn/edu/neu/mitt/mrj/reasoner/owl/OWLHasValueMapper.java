@@ -50,6 +50,8 @@ public class OWLHasValueMapper extends Mapper<Long, Row, LongWritable, BytesWrit
 			values[0] = 0;
 			NumberUtils.encodeLong(values, 1, value.getObject());
 			oValue.set(values, 0, 9);
+			
+			context.write(oKey, oValue);
 		} else if (value.getPredicate() != TriplesUtils.RDF_TYPE	// 处理14a，其中value形如(u p w)，目的是在reduce中生成(u rdf:type v)，我们还要添加14a(v owl:hasValue w)
 				&& hasValueInverted.contains(value.getObject())
 				&& onPropertyInverted.contains(value.getPredicate())) {
@@ -58,9 +60,12 @@ public class OWLHasValueMapper extends Mapper<Long, Row, LongWritable, BytesWrit
 			NumberUtils.encodeLong(values, 1, value.getPredicate());
 			NumberUtils.encodeLong(values, 9, value.getObject());
 			oValue.set(values, 0, 17);
+			
+			context.write(oKey, oValue);
 		}
 		
-		context.write(oKey, oValue);
+		// Moved into if-else by WuGang, 20150203
+//		context.write(oKey, oValue);
 	}
 
 	public void setup(Context context) throws IOException {
