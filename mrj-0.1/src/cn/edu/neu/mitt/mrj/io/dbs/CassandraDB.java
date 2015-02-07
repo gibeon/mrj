@@ -63,6 +63,7 @@ public class CassandraDB {
     public static final String KEYSPACE = "mrjks";	// mr.j keyspace
     public static final String COLUMNFAMILY_JUSTIFICATIONS = "justifications";	// mr.j keyspace
     public static final String COLUMNFAMILY_RESOURCES = "resources";	// mr.j keyspace
+    public static final String COLUMNFAMILY_RESULTS = "results";	// mr.j keyspace
     public static final String COLUMN_SUB = "sub";	// mrjks.justifications.sub
     public static final String COLUMN_PRE = "pre";	// mrjks.justifications.pre
     public static final String COLUMN_OBJ = "obj";	// mrjks.justifications.obj
@@ -75,6 +76,8 @@ public class CassandraDB {
     public static final String COLUMN_V3 = "v3"; // mrjks.justifications.rule
     public static final String COLUMN_ID = "id";	// mrjks.resources.id
     public static final String COLUMN_LABEL = "label";	// mrjks.resources.label
+    public static final String COLUMN_JUSTIFICATION = "justification";	//mrjks.results.justification
+    public static final String COLUMN_STEP = "step";	// mrjks.results.step
     
     public static final String DEFAULT_HOST = "localhost";
     public static final String DEFAULT_PORT = "9160";	// in version 2.1.2, cql3 port is 9042
@@ -91,8 +94,6 @@ public class CassandraDB {
     	System.setProperty("cassandra.config", location);
     }
 
-
-	
 	private Cassandra.Iface client;
 
     private static Cassandra.Iface createConnection() throws TTransportException{
@@ -142,13 +143,14 @@ public class CassandraDB {
         }
     }
 
-    private static void setupTable(Cassandra.Iface client)  
+    private static void setupTables(Cassandra.Iface client)  
             throws InvalidRequestException, 
             UnavailableException, 
             TimedOutException, 
             SchemaDisagreementException, 
             TException {
     	
+    	// Create justifications table
         String query = "CREATE TABLE " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
                 " ( " + 
                 COLUMN_SUB + " bigint, " +			// partition key
@@ -174,6 +176,7 @@ public class CassandraDB {
             logger.error("failed to create table " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS, e);
         }
 
+        // Create resources table
         query = "CREATE TABLE " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES + 
                 " ( " +
         		COLUMN_ID + " bigint, " +
@@ -187,6 +190,22 @@ public class CassandraDB {
         catch (InvalidRequestException e) {
             logger.error("failed to create table " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES, e);
         }
+        
+        // Create results table
+        query = "CREATE TABLE " + KEYSPACE + "."  + COLUMNFAMILY_RESULTS + 
+                " ( " +
+        		COLUMN_ID + " uuid, " +
+                COLUMN_JUSTIFICATION + " set<frozen <tuple<bigint, bigint, bigint>>>, " +
+                "   PRIMARY KEY (" + COLUMN_ID + ") ) ";
+        
+        try {
+            logger.info("set up table " + COLUMNFAMILY_RESULTS);
+            client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+        }
+        catch (InvalidRequestException e) {
+            logger.error("failed to create table " + KEYSPACE + "."  + COLUMNFAMILY_RESULTS, e);
+        }
+
     }
     
     
@@ -203,7 +222,7 @@ public class CassandraDB {
 	public void init() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
 	        setupKeyspace(client);
 	        client.set_keyspace(KEYSPACE);
-	        setupTable(client);
+	        setupTables(client);
 	}
 	
 	public Cassandra.Iface getDBClient(){
@@ -326,7 +345,7 @@ public class CassandraDB {
 			TripleSource source, 
 			Context context) throws IOException, InterruptedException{
 		Map<String, ByteBuffer> keys = 	new LinkedHashMap<String, ByteBuffer>();
-;
+
     	byte one = 1;
     	byte zero = 0;
 
@@ -349,7 +368,7 @@ public class CassandraDB {
         keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(triple.getRpredicate()));	// long
         keys.put(CassandraDB.COLUMN_V3, ByteBufferUtil.bytes(triple.getRobject()));	// long
         
-        // Prepare variables, here is a boolean value for CassandraDB.COLUMN_IS_LITERAL
+        // Prepare variables
     	List<ByteBuffer> variables =  new ArrayList<ByteBuffer>();
 //      variables.add(ByteBufferUtil.bytes(oValue.getSubject()));
     	// the length of boolean type in cassandra is one byte!!!!!!!!
@@ -362,6 +381,40 @@ public class CassandraDB {
 	
 	public boolean loadSetIntoMemory(Set<Long> schemaTriples, Set<Integer> filters, int previousStep) throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
 		return loadSetIntoMemory(schemaTriples, filters, previousStep, false);
+	}
+	
+	public Set<Triple> getTracingEntries(Triple triple) throws InvalidRequestException, TException{
+    	byte one = 1;
+    	byte zero = 0;
+		Set<Triple> tracingEntries = new HashSet<Triple>(); 
+		
+		String query = "SELECT * FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + " WHERE " + 
+				COLUMN_SUB + "=? AND " + COLUMN_PRE + "=? AND " + COLUMN_OBJ + "=? AND " + COLUMN_IS_LITERAL + "=?";
+		CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
+    	List<ByteBuffer> list = new ArrayList<ByteBuffer>();
+    	list.add(ByteBufferUtil.bytes(triple.getSubject()));
+    	list.add(ByteBufferUtil.bytes(triple.getPredicate()));
+    	list.add(ByteBufferUtil.bytes(triple.getObject()));
+    	list.add(triple.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));
+    	CqlResult result = client.execute_prepared_cql3_query(preparedResult.itemId, list, ConsistencyLevel.ONE);
+       	for(CqlRow row : result.rows){
+    		Triple tracingEntry = new Triple(triple);
+    		Iterator<Column> columnsIt = row.getColumnsIterator();
+      		while (columnsIt.hasNext()) {
+      			Column column = columnsIt.next();
+      		    if (new String(column.getName()).equals(COLUMN_RULE))
+      		    	tracingEntry.setType(ByteBufferUtil.toInt(column.bufferForValue()));
+      		    if (new String(column.getName()).equals(COLUMN_V1))
+      		    	tracingEntry.setRsubject(ByteBufferUtil.toLong(column.bufferForValue()));
+      		    if (new String(column.getName()).equals(COLUMN_V2))
+      		    	tracingEntry.setRpredicate(ByteBufferUtil.toLong(column.bufferForValue()));
+      		    if (new String(column.getName()).equals(COLUMN_V3))
+      		    	tracingEntry.setRobject(ByteBufferUtil.toLong(column.bufferForValue()));
+     		}
+      		tracingEntries.add(tracingEntry);
+       	}
+       	
+		return tracingEntries;
 	}
 	
 	public boolean loadSetIntoMemory(
