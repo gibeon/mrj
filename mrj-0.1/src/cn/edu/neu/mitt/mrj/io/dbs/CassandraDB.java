@@ -530,12 +530,19 @@ public class CassandraDB {
 		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
 	}
 	
+	public void createIndexOnRule() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+		String query = "CREATE INDEX ON " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + "(" + COLUMN_RULE + ")";
+		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+	}
+
+	
 	
 	public static void main(String[] args) {
 		try {
 			CassandraDB db = new CassandraDB("localhost", 9160);
 			db.init();
 			db.createIndexOnTripleType();
+			db.createIndexOnRule();
 //			db.insertResources(100, "Hello World!");
 			Set<Long> schemaTriples = new HashSet<Long>();
 			Set<Integer> filters = new HashSet<Integer>();
