@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cn.edu.neu.mitt.mrj.data.Triple;
+import cn.edu.neu.mitt.mrj.utils.TripleKeyMapComparator;
 
 /**
  * This class is used to find justifications under OWL Horst semantics
@@ -91,7 +92,7 @@ public class OWLHorstJustification extends Configured implements Tool {
 			FileSystem fs = FileSystem.get(URI.create(justificationsDir.toString()), conf);
 			if (!fs.exists(justificationsDir)) {
 				SequenceFile.Writer writer = SequenceFile.createWriter(fs,
-						conf, justificationsDir, NullWritable.class, MapWritable.class);
+						conf, justificationsDir, Triple.class, MapWritable.class);
 				writer.append(tripleToJustify, initialExplanation);
 				writer.close();
 			}
@@ -123,7 +124,10 @@ public class OWLHorstJustification extends Configured implements Tool {
 	    job.setMapOutputKeyClass(MapWritable.class);			// map output an explanation as key
 	    // map output a long value indicating whether an explanation need to be further expanded 
 	    //     (if the value equals the size of the size of triples in the explanation)
-	    job.setMapOutputValueClass(LongWritable.class);			
+	    job.setMapOutputValueClass(LongWritable.class);
+	    
+		((JobConf) job.getConfiguration()).setOutputKeyComparatorClass(TripleKeyMapComparator.class);
+
 	    
 	    //Reducer
 	    job.setReducerClass(OWLHorstJustificationReducer.class);
