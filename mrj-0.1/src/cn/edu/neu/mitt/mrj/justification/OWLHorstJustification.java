@@ -175,7 +175,7 @@ public class OWLHorstJustification extends Configured implements Tool {
 		CassandraDB db = null;
 		try{
 			db = new CassandraDB("localhost", 9160);
-			db.init();
+			db.getDBClient().set_keyspace(CassandraDB.KEYSPACE);
 			Set<Set<TupleValue>> justifications = db.getJustifications();
 			int count = 0; 
 			for (Set<TupleValue> justification : justifications){
@@ -188,8 +188,7 @@ public class OWLHorstJustification extends Configured implements Tool {
 							" - <" + db.idToLabel(sub) + ", " + db.idToLabel(pre) + ", " + db.idToLabel(obj) + ">");
 				}
 			}
-			
-		}catch (Exception e){
+		}catch(Exception e){
 			System.err.println(e.getMessage());
 		}
 
