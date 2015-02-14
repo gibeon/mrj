@@ -11,8 +11,6 @@ package cn.edu.neu.mitt.mrj.io.dbs;
 
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
@@ -25,6 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.cassandra.cql3.QueryProcessor;
+import org.apache.cassandra.cql3.UntypedResultSet;
+import org.apache.cassandra.db.marshal.TupleType;
+import org.apache.cassandra.exceptions.RequestExecutionException;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
@@ -55,7 +57,9 @@ import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TupleValue;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 
 
 /**
@@ -399,11 +403,37 @@ public class CassandraDB {
 		return null;
 	}
 	
-	public Set<Set<TupleValue>> getJustifications() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException, IOException, ClassNotFoundException{
+	public static Set<Set<TupleValue>> getJustifications() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException, IOException, ClassNotFoundException, RequestExecutionException{
 		Set<Set<TupleValue>> results = new HashSet<Set<TupleValue>>();
 		
-		String query = "SELECT " + COLUMN_JUSTIFICATION + " FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESULTS;
-		CqlResult cqlResult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+//		String query = "SELECT " + COLUMN_JUSTIFICATION + " FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESULTS;
+		SimpleClientDataStax scds = new SimpleClientDataStax();
+		scds.connect(DEFAULT_HOST);
+		Statement statement = QueryBuilder.select().all().from(KEYSPACE, COLUMNFAMILY_RESULTS);
+		List<Row> rows = scds.getSession().execute(statement).all();
+
+		for (Row row : rows){
+			Set<TupleValue> testResult = row.getSet(COLUMN_JUSTIFICATION, TupleValue.class);
+        	Set<Set<TupleValue>> toBeDeletedFromResults = new HashSet<Set<TupleValue>>();	// Perform delete these from the results
+        	boolean beAdded = true;
+		        for (Set<TupleValue> currentResult : results){
+		        	if (testResult.containsAll(currentResult)){
+		        		beAdded = false;
+		        		break;	// testResult contains (is larger than) currentResult, so testResult should not be added
+		        	}
+		        	else if (currentResult.containsAll(testResult)){
+		        		// currentResult contains (is larger than) testResult, so currentResult should be deleted from the results set after traversing the result set
+		        		toBeDeletedFromResults.add(currentResult);	
+		        	}
+		        }
+		        if (beAdded)	// The testResult is a candidate justification
+		        	results.add(testResult);
+		}
+		
+		scds.close();
+		
+
+		/*CqlResult cqlResult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
 		for (CqlRow row : cqlResult.rows){
   			Column column = row.columns.get(0);	// Only one column COLUMN_JUSTIFICATION
   		    if (new String(column.getName()).equals(COLUMN_JUSTIFICATION)){
@@ -428,7 +458,7 @@ public class CassandraDB {
   		        if (beAdded)	// The testResult is a candidate justification
   		        	results.add(testResult);
   		    }
-		}
+		}*/
 		
 		return results;
 	}
