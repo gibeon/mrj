@@ -11,7 +11,10 @@ package cn.edu.neu.mitt.mrj.io.dbs;
 
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -52,6 +55,7 @@ import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.TupleValue;
 
 
 /**
@@ -382,6 +386,53 @@ public class CassandraDB {
 	public boolean loadSetIntoMemory(Set<Long> schemaTriples, Set<Integer> filters, int previousStep) throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
 		return loadSetIntoMemory(schemaTriples, filters, previousStep, false);
 	}
+	
+	public String idToLabel(long id) throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException, CharacterCodingException{
+		String query = "SELECT " + COLUMN_LABEL + " FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESOURCES + 
+				" WHERE " + COLUMN_ID + "=" + id;
+		CqlResult cqlResult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+		for (CqlRow row : cqlResult.rows){
+  			Column column = row.columns.get(0);						// Only one column COLUMN_LABEL
+  			return ByteBufferUtil.string(column.bufferForValue());	// Only one row in fact, otherwise return null;
+		}
+		
+		return null;
+	}
+	
+	public Set<Set<TupleValue>> getJustifications() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException, IOException, ClassNotFoundException{
+		Set<Set<TupleValue>> results = new HashSet<Set<TupleValue>>();
+		
+		String query = "SELECT " + COLUMN_JUSTIFICATION + " FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESULTS;
+		CqlResult cqlResult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+		for (CqlRow row : cqlResult.rows){
+  			Column column = row.columns.get(0);	// Only one column COLUMN_JUSTIFICATION
+  		    if (new String(column.getName()).equals(COLUMN_JUSTIFICATION)){
+//  		    	ByteArrayInputStream bi = new ByteArrayInputStream(column.getValue());
+//  		        ObjectInputStream oi = new ObjectInputStream(bi);
+  		    	InputStream is = ByteBufferUtil.inputStream(column.bufferForValue());
+  		        ObjectInputStream oi = new ObjectInputStream(is);
+  		        @SuppressWarnings("unchecked")
+				Set<TupleValue> testResult = (Set<TupleValue>)oi.readObject();	// A new result from db to be test whether a justification
+	        	Set<Set<TupleValue>> toBeDeletedFromResults = new HashSet<Set<TupleValue>>();	// Perform delete these from the results
+	        	boolean beAdded = true;
+  		        for (Set<TupleValue> currentResult : results){
+  		        	if (testResult.containsAll(currentResult)){
+  		        		beAdded = false;
+  		        		break;	// testResult contains (is larger than) currentResult, so testResult should not be added
+  		        	}
+  		        	else if (currentResult.containsAll(testResult)){
+  		        		// currentResult contains (is larger than) testResult, so currentResult should be deleted from the results set after traversing the result set
+  		        		toBeDeletedFromResults.add(currentResult);	
+  		        	}
+  		        }
+  		        if (beAdded)	// The testResult is a candidate justification
+  		        	results.add(testResult);
+  		    }
+		}
+		
+		return results;
+	}
+	
 	
 	public Set<Triple> getTracingEntries(Triple triple) throws InvalidRequestException, TException{
     	byte one = 1;

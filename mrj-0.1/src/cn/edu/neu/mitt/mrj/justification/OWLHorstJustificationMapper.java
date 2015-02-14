@@ -38,7 +38,7 @@ public class OWLHorstJustificationMapper extends
 	protected void map(Triple key, MapWritable value, Context context)
 			throws IOException, InterruptedException {
 		try {
-			// Create a toExtendExplanations without the key triple
+			// Create a toExtendExplanations without the key triple 
 			MapWritable toExtendExplanations = new MapWritable();
 			for (Writable triple : value.keySet()){
 				// Find the triple to be traced.
@@ -46,17 +46,19 @@ public class OWLHorstJustificationMapper extends
 						(((Triple)triple).getPredicate() == key.getPredicate()) &&
 						(((Triple)triple).getObject() == key.getObject()) &&
 						(((Triple)triple).isObjectLiteral() == key.isObjectLiteral())){
-					// Do nothing
+					// do nothing
 				}else
 					toExtendExplanations.put((Triple)triple, NullWritable.get());
 			}
 
 			
 			Set<Triple> tracingEntries = db.getTracingEntries(key);
-			
+
 			// This explanation cannot be traced from this key triple
-			if (tracingEntries.size() == 0)
+			if (tracingEntries.size() == 0){
 				context.write(value, new LongWritable(1));
+//				System.out.println("The key triple cannot be traced: " + key);
+			}
 			
 			for (Triple tracingEntry : tracingEntries){
 				Set<Triple> tracedTriples = tracing(tracingEntry);
@@ -65,6 +67,10 @@ public class OWLHorstJustificationMapper extends
 					newExplanation.put(tracedTriple, NullWritable.get());
 				// This explanation may be further traced from this key triple
 				context.write(newExplanation, new LongWritable(0));
+//				System.out.println("The key triple can be traced: " + key + "; the new explanation is: ");
+				for (Writable t : newExplanation.keySet()){
+					System.out.println(t);
+				}
 			}
 			
 		} catch (InvalidRequestException e) {

@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.hadoop.io.MapWritable;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -31,6 +32,10 @@ public class TripleKeyMapComparator extends WritableComparator {
 	@SuppressWarnings("rawtypes")
 	protected TripleKeyMapComparator(Class<? extends WritableComparable> keyClass) {
 		super(keyClass);
+	}
+	
+	public TripleKeyMapComparator(){
+		super(Text.class);
 	}
 
 	@Override

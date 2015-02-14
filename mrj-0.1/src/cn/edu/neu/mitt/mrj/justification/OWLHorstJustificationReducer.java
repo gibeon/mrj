@@ -11,8 +11,6 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
@@ -32,7 +30,7 @@ import com.datastax.driver.core.utils.UUIDs;
 public class OWLHorstJustificationReducer extends
 		Reducer<MapWritable, LongWritable, Triple, MapWritable> {
 
-	private static Logger log = LoggerFactory.getLogger(OWLHorstJustificationReducer.class);
+//	private static Logger log = LoggerFactory.getLogger(OWLHorstJustificationReducer.class);
 	private static SimpleClientDataStax sClient = null;
 
 	@Override
@@ -43,6 +41,7 @@ public class OWLHorstJustificationReducer extends
 		for (LongWritable count:values){
 			total += count.get();
 		}
+//		System.out.println("Total count is: " + total);
 		
 		if (total == key.size()){	// Find a candidate justification, output it to the database
 			Set<TupleValue> resultJustification = new HashSet<TupleValue>();
@@ -55,16 +54,20 @@ public class OWLHorstJustificationReducer extends
 				resultJustification.add(theValue);
 			}
 			
-			log.info("Write a candidate justification to database=========== ");
-			log.info(resultJustification.toString());
+//			log.info("Write a candidate justification to database=========== ");
+//			log.info(resultJustification.toString());
 			
 			Insert insert = QueryBuilder
 					.insertInto(CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_RESULTS)
 					.value(CassandraDB.COLUMN_JUSTIFICATION, resultJustification)
 					.value(CassandraDB.COLUMN_ID, UUIDs.timeBased());
 			sClient.getSession().execute(insert);
+			
+			// Added by WuGang 2015-02-14
+			context.getCounter("OWL Horst Justifications Job", "ExplanationOutputs").increment(1);
 		}else if (total == 0){		// Should be further traced
 			for (Writable triple : key.keySet()){
+//				System.out.println("find a triple to be further traced: " + (Triple)triple);
 				context.write((Triple)triple, key);
 			}
 		}	// else do nothing.

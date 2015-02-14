@@ -11,6 +11,7 @@ package cn.edu.neu.mitt.mrj.justification;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -21,6 +22,7 @@ import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
@@ -31,7 +33,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cn.edu.neu.mitt.mrj.data.Triple;
+import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.utils.TripleKeyMapComparator;
+
+import com.datastax.driver.core.TupleValue;
 
 /**
  * This class is used to find justifications under OWL Horst semantics
@@ -159,8 +164,35 @@ public class OWLHorstJustification extends Configured implements Tool {
 			
 			job.waitForCompletion(true);
 			
+			newExpanded = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
+
+			Counter counterToProcess = job.getCounters().findCounter("OWL Horst Justifications Job", "ExplanationOutputs");
+			total += counterToProcess.getValue();
+			
 			step++;
 		}while (newExpanded > 0);
+		
+		CassandraDB db = null;
+		try{
+			db = new CassandraDB("localhost", 9160);
+			db.init();
+			Set<Set<TupleValue>> justifications = db.getJustifications();
+			int count = 0; 
+			for (Set<TupleValue> justification : justifications){
+				System.out.println(">>>Justification - " + ++count + ":");
+				for(TupleValue triple : justification){
+					long sub = triple.getLong(0);
+					long pre = triple.getLong(1);
+					long obj = triple.getLong(2);
+					System.out.println("\t<" + sub + ", " + pre + ", " + obj + ">" + 
+							" - <" + db.idToLabel(sub) + ", " + db.idToLabel(pre) + ", " + db.idToLabel(obj) + ">");
+				}
+			}
+			
+		}catch (Exception e){
+			System.err.println(e.getMessage());
+		}
+
 		
 		
 		System.out.println("Time (in seconds): " + (System.currentTimeMillis() - startTime) / 1000);
