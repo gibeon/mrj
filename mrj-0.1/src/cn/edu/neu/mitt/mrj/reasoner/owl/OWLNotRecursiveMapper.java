@@ -40,6 +40,7 @@ public class OWLNotRecursiveMapper extends Mapper<Long, Row, BytesWritable, Long
 		/* Check if the triple has the functional property. If yes output
 		 * a key value so it can be matched in the reducer.
 		 */
+		
 		if (schemaFunctionalProperties.contains(value.getPredicate())
 				&& !value.isObjectLiteral()) {			
 			//Set as key a particular flag plus the predicate
@@ -95,6 +96,9 @@ public class OWLNotRecursiveMapper extends Mapper<Long, Row, BytesWritable, Long
 			}
 			context.write(this.key, new LongWritable(predicate));
 		}
+		
+		//System.out.println("Cassandra time :"+(System.currentTimeMillis() - time));
+		
 	}
 
 	protected void setup(Context context) throws IOException {
@@ -142,6 +146,8 @@ public class OWLNotRecursiveMapper extends Mapper<Long, Row, BytesWritable, Long
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_TRANSITIVE_PROPERTY);
 				hasSchemaChanged = db.loadSetIntoMemory(schemaTransitiveProperties, filters, previousDerivation);
 			}
+			
+			db.CassandraDBClose();
 		}catch(TException te){
 			te.printStackTrace();
 		}

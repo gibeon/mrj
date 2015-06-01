@@ -193,8 +193,8 @@ public class FilesImportTriples extends Configured implements Tool {
 
 	    
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
-        ConfigHelper.setOutputInitialAddress(job.getConfiguration(), "localhost");
-        ConfigHelper.setOutputPartitioner(job.getConfiguration(), "Murmur3Partitioner");
+        ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
+        ConfigHelper.setOutputPartitioner(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.partitioner);
 	    
 	    //Launch
 	    long time = System.currentTimeMillis();
@@ -223,6 +223,14 @@ public class FilesImportTriples extends Configured implements Tool {
 		long time = System.currentTimeMillis();
 		int res = ToolRunner.run(new Configuration(), new FilesImportTriples(), args);
 //		log.info("Import time: " + (System.currentTimeMillis() - time));
+		
+		//Modified by LiYang	2015/4/10
+		CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
+		db.init();
+		db.createIndexOnTripleType();
+		db.createIndexOnRule();
+		db.CassandraDBClose();
+		
 		System.out.println("Import time: " + (System.currentTimeMillis() - time));
 		System.exit(res);
 	  }	

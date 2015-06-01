@@ -62,6 +62,7 @@ public class OWLHasValueMapper extends Mapper<Long, Row, LongWritable, BytesWrit
 			oValue.set(values, 0, 17);
 			
 			context.write(oKey, oValue);
+
 		}
 		
 		// Moved into if-else by WuGang, 20150203
@@ -95,6 +96,7 @@ public class OWLHasValueMapper extends Mapper<Long, Row, LongWritable, BytesWrit
 				onPropertyInverted = new HashSet<Long>();
 				db.loadSetIntoMemory(onPropertyInverted, filters, -1, true);
 			}
+			db.CassandraDBClose();
 		}catch(TException te){
 			te.printStackTrace();
 		}

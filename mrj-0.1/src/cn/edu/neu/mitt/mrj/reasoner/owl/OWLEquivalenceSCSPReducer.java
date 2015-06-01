@@ -255,7 +255,8 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_EQUIVALENT_PROPERTY);
 				equivalencePropertiesSchemaTriples = db.loadMapIntoMemory(filters);
-			}			
+			}
+			db.CassandraDBClose();
 		}catch (TTransportException e) {
 			e.printStackTrace();
 		} catch (InvalidRequestException e) {

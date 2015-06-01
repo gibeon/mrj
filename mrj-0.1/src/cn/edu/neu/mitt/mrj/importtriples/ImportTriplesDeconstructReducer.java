@@ -68,7 +68,7 @@ public class ImportTriplesDeconstructReducer extends Reducer<Text, LongWritable,
 	protected void setup(Context context) throws IOException, InterruptedException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
 		try {
-			db = new CassandraDB("localhost", 9160);
+			db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
 			db.init();
 		} catch (InvalidRequestException e) {
 			e.printStackTrace();
@@ -89,4 +89,9 @@ public class ImportTriplesDeconstructReducer extends Reducer<Text, LongWritable,
 		counter = (Long.valueOf(taskId) + 1) << 32;
 		log.debug("Start counter " + (Long.valueOf(taskId) + 1));
     }
+
+	protected void cleanup(Context context) throws IOException, InterruptedException{
+		db.CassandraDBClose();
+	}
+	
 }

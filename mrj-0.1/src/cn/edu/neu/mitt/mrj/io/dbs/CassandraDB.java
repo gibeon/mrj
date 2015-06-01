@@ -58,8 +58,13 @@ import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
+//modified  cassandra java 2.0.5
 import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+
+
+//modified 
+import org.apache.cassandra.thrift.CassandraServer;
 
 
 /**
@@ -87,14 +92,14 @@ public class CassandraDB {
     public static final String COLUMN_JUSTIFICATION = "justification";	//mrjks.results.justification
     public static final String COLUMN_STEP = "step";	// mrjks.results.step
     
-    public static final String DEFAULT_HOST = "localhost";
+    public static final String DEFAULT_HOST = cn.edu.neu.mitt.mrj.utils.Cassandraconf.host;
     public static final String DEFAULT_PORT = "9160";	// in version 2.1.2, cql3 port is 9042
     
-	public static final String CQL_PAGE_ROW_SIZE = "10";	//3
+	public static final String CQL_PAGE_ROW_SIZE = "10000";	//3  modified by liyang
 
     
 	// 2014-12-11, Very strange, this works around.
-    public static final String CONFIG_LOCATION = "file:///home/gibeon/Software/apache-cassandra-2.1.2/conf/cassandra.yaml";
+    public static final String CONFIG_LOCATION = cn.edu.neu.mitt.mrj.utils.Cassandraconf.CassandraConfFile;
     public static void setConfigLocation(){
     	setConfigLocation(CONFIG_LOCATION);
     }
@@ -112,13 +117,31 @@ public class CassandraDB {
                                 Integer.valueOf(System.getProperty("cassandra.port", DEFAULT_PORT)));
     }
 
+    
+    
+    private static TSocket socket = null;
+    private static TTransport trans = null;
+    private static Cassandra.Client client1 = null;
     private static Cassandra.Client createConnection(String host, Integer port) throws TTransportException {
-        TSocket socket = new TSocket(host, port);
-        TTransport trans = new TFramedTransport(socket);
+        socket = new TSocket(host, port);
+        trans = new TFramedTransport(socket);
         trans.open();
         TProtocol protocol = new TBinaryProtocol(trans);
 
-        return new Cassandra.Client(protocol);
+        if (client1 != null){
+        	return client1;
+        }     
+        client1 = new Cassandra.Client(protocol);        
+        //Modified 2015/5/25
+        return client1;
+    }
+    
+    private static void close(){
+    	if(trans != null)
+    		trans.close();
+    	if(socket != null)
+    		socket.close();
+    	return;
     }
     
     
@@ -227,6 +250,10 @@ public class CassandraDB {
 		client = createConnection(host, port);
 	}
 	
+	public void CassandraDBClose(){
+		this.close();
+	}
+	
 	public void init() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
 	        setupKeyspace(client);
 	        client.set_keyspace(KEYSPACE);
@@ -272,9 +299,12 @@ public class CassandraDB {
 	 * Get the row count according to the type of rule.
 	 * @return row count.
 	 */
+	//modified
+	/*
 	public long getRowCountAccordingRule(int rule){
 		String query = "SELECT COUNT(*) FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
 				" WHERE " + COLUMN_RULE + " = " + rule + " ALLOW FILTERING";	// must use ALLOW FILTERING 
+		//modified
 
 		long num = 0;
 		try {
@@ -294,7 +324,7 @@ public class CassandraDB {
 		
 		return num;
 	}
-
+*/
 	
 	public void insertResources(long id, String label) throws InvalidRequestException, TException{
         String query = "INSERT INTO " + COLUMNFAMILY_RESOURCES +  
@@ -403,6 +433,8 @@ public class CassandraDB {
 		return null;
 	}
 	
+	//modified  cassandra java 2.0.5
+	
 	public static Set<Set<TupleValue>> getJustifications() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException, IOException, ClassNotFoundException, RequestExecutionException{
 		Set<Set<TupleValue>> results = new HashSet<Set<TupleValue>>();
 		
@@ -459,7 +491,7 @@ public class CassandraDB {
   		        	results.add(testResult);
   		    }
 		}*/
-		
+	//modified  cassandra java 2.0.5
 		return results;
 	}
 	
@@ -620,7 +652,7 @@ public class CassandraDB {
 	
 	public static void main(String[] args) {
 		try {
-			CassandraDB db = new CassandraDB("localhost", 9160);
+			CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
 			db.init();
 			db.createIndexOnTripleType();
 			db.createIndexOnRule();
@@ -629,8 +661,10 @@ public class CassandraDB {
 			Set<Integer> filters = new HashSet<Integer>();
 			filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
 			db.loadSetIntoMemory(schemaTriples, filters, 0);
+			
 			System.out.println(schemaTriples);
 			
+			//modified 2015/5/19
 			System.out.println("Transitive: " + db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE));
 			
 	        System.exit(0);

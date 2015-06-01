@@ -100,7 +100,7 @@ public class OWLReasoner extends Configured implements Tool {
 		
 		try {
 			OWLReasoner owlreasoner = new OWLReasoner();
-			owlreasoner.db = new CassandraDB("localhost", 9160);
+			owlreasoner.db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
 			owlreasoner.db.init();
 			
 			ToolRunner.run(new Configuration(), owlreasoner, args);
@@ -235,7 +235,12 @@ public class OWLReasoner extends Configured implements Tool {
 		// We'll not use filesystem but db.getTransitiveStatementsCount()
 		long derivation = 0;
 		int level = 0;
+		
+		//modified 2015/5/19
 		long beforeInferCount = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE);
+		
+		//modified 2015/5/19
+		//for(int i = 0;i <= 3; i++){
 		while ((beforeInferCount > 0) && derivedNewStatements && shouldInferTransitivity) {
 //			System.out.println("开始在inferTransitivityStatements的while循环中寻找。");
 			level++;
@@ -282,7 +287,14 @@ public class OWLReasoner extends Configured implements Tool {
 			boolean derivedSynonyms = true;
 			int derivationStep = 1;
 			long previousStepDerived = 0; 	// Added by WuGang 2015-01-30
+			
+			//modified 2015/5/19
+			//int i = 0;
 			while (derivedSynonyms) {
+				//modified 2015/5/19
+				//i++;
+				//if (i == 3)
+				//	return 0;
 				if (db.getRowCountAccordingTripleType(TriplesUtils.DATA_TRIPLE_SAME_AS)==0)	// We need not to infer on SameAs
 					return 0;
 
@@ -312,13 +324,17 @@ public class OWLReasoner extends Configured implements Tool {
 			}
 			
 			//Filter the table.
+			
+			//modified 2015/5/19
 			long tableSize = db.getRowCountAccordingTripleType(TriplesUtils.SYNONYMS_TABLE);
 			
 //			System.out.println("tableSize 为 : " + tableSize);
 //			System.out.println("sizeDictionary 为 : " + sizeDictionary);
 //			System.out.println("derivedTriples 为 : " + derivedTriples);
-			if (tableSize > sizeDictionary || derivedTriples > 0) {
 			
+			//modified 2015/5/19
+			if (tableSize > sizeDictionary || derivedTriples > 0) {
+			//for(int j =0 ;j <= 3 ; j++){
 				//1) Calculate the URIs distribution and get the first 2M.
 				job = MapReduceReasonerJobConfig.createNewJob(
 						OWLReasoner.class,
@@ -401,6 +417,7 @@ public class OWLReasoner extends Configured implements Tool {
 					fs.rename(new Path(args[0] + "/dir-input"), new Path(args[0] + "/_dir-input"));
 
 			}
+			//modified 2015/5/19
 			sizeDictionary = tableSize;
 			
 		} catch (Exception e) {
@@ -450,8 +467,8 @@ public class OWLReasoner extends Configured implements Tool {
 		int previousSomeAllValuesDerivation = -1;
 		
 		// Added by Wugang 20150111
-		long countRule15 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_15);	// see OWLAllSomeValuesReducer
-		long countRule16 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_16);	// see OWLAllSomeValuesReducer
+		//long countRule15 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_15);	// see OWLAllSomeValuesReducer
+		//long countRule16 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_16);	// see OWLAllSomeValuesReducer
 		
 		while (derivedNewStatements) {
 			step++;
@@ -473,17 +490,17 @@ public class OWLReasoner extends Configured implements Tool {
 			job.waitForCompletion(true);
 			
 			// Added by Wugang 20150111
-			countRule15 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_15) - countRule15;	// see OWLAllSomeValuesReducer
-			countRule16 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_16) - countRule16;	// see OWLAllSomeValuesReducer
-			totalDerivation =  countRule15 +  countRule16;
+		//	countRule15 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_15) - countRule15;	// see OWLAllSomeValuesReducer
+		//	countRule16 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_16) - countRule16;	// see OWLAllSomeValuesReducer
+		//	totalDerivation =  countRule15 +  countRule16;
 
 			derivedNewStatements = (totalDerivation > 0);
 		}
 		
 		// Added by Wugang 20150111
-		countRule15 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_15) - countRule15;	// see OWLAllSomeValuesReducer
-		countRule16 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_16) - countRule16;	// see OWLAllSomeValuesReducer
-		totalDerivation =  countRule15 +  countRule16;
+		//countRule15 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_15) - countRule15;	// see OWLAllSomeValuesReducer
+		//countRule16 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_16) - countRule16;	// see OWLAllSomeValuesReducer
+		//totalDerivation =  countRule15 +  countRule16;
 		
 		return totalDerivation;
 	}
@@ -495,8 +512,8 @@ public class OWLReasoner extends Configured implements Tool {
 		step++;
 		
 		// Added by Wugang 20150111
-		long countRule14a = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14a);	// see OWLAllSomeValuesReducer
-		long countRule14b = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14b);	// see OWLAllSomeValuesReducer
+		//long countRule14a = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14a);	// see OWLAllSomeValuesReducer
+		//long countRule14b = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14b);	// see OWLAllSomeValuesReducer
 
 		
 		Job job = MapReduceReasonerJobConfig.createNewJob(
@@ -523,9 +540,10 @@ public class OWLReasoner extends Configured implements Tool {
 		
 		// Get inferred count
 		if (job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue() > 0) {
-			countRule14a = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14a) - countRule14a;	// see OWLAllSomeValuesReducer
-			countRule14b = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14b) - countRule14b;	// see OWLAllSomeValuesReducer
-			return(countRule14a +  countRule14b);
+		//	countRule14a = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14a) - countRule14a;	// see OWLAllSomeValuesReducer
+		//	countRule14b = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14b) - countRule14b;	// see OWLAllSomeValuesReducer
+		//	return(countRule14a +  countRule14b);
+			return 0;
 		} else {
 			return 0;
 		}

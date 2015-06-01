@@ -17,6 +17,7 @@ import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.io.dbs.SimpleClientDataStax;
 
 import com.datastax.driver.core.DataType;
+//modified  cassandra java 2.0.5
 import com.datastax.driver.core.TupleType;
 import com.datastax.driver.core.TupleValue;
 import com.datastax.driver.core.querybuilder.Insert;
@@ -42,6 +43,7 @@ public class OWLHorstJustificationReducer extends
 			total += count.get();
 		}
 //		System.out.println("Total count is: " + total);
+		//modified  cassandra java 2.0.5
 		
 		if (total == key.size()){	// Find a candidate justification, output it to the database
 			Set<TupleValue> resultJustification = new HashSet<TupleValue>();

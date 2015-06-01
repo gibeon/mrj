@@ -183,6 +183,7 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBCLASS);
 				subclassSchemaTriples = db.loadMapIntoMemory(filters);
+				db.CassandraDBClose();
 			} catch (TTransportException e) {
 				e.printStackTrace();
 			} catch (InvalidRequestException e) {
@@ -207,6 +208,8 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 				
 				memberProperties = new HashSet<Long>();
 				db.loadSetIntoMemory(memberProperties, filters, -1);
+				
+				db.CassandraDBClose();
 			} catch (TTransportException e) {
 				e.printStackTrace();
 			} catch (InvalidRequestException e) {

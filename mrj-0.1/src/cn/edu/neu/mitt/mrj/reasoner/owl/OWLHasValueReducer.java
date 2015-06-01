@@ -130,6 +130,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 			onPropertyFilter.add(TriplesUtils.SCHEMA_TRIPLE_ON_PROPERTY);
 			onPropertyMap = db.loadMapIntoMemory(onPropertyFilter);
 			onProperty2Map = db.loadMapIntoMemory(onPropertyFilter, true);
+			db.CassandraDBClose();
 		}catch (TTransportException e) {
 			e.printStackTrace();
 		} catch (InvalidRequestException e) {

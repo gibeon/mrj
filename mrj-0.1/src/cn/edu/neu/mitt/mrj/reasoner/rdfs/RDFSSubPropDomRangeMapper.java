@@ -104,6 +104,7 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_RANGE_PROPERTY);
 	
 				hasSchemaChanged |= db.loadSetIntoMemory(rangeSchemaTriples, filters, previousExecutionStep);
+			db.CassandraDBClose();
 			}
 		}catch(TTransportException tte){
 			tte.printStackTrace();

@@ -84,6 +84,8 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 				hasSchemaChanged = db.loadSetIntoMemory(subpropSchemaTriples, filters, previousExecutionStep);
 //				hasSchemaChanged = FilesTriplesReader.loadSetIntoMemory(subpropSchemaTriples, context, 
 //				"FILTER_ONLY_SUBPROP_SCHEMA", previousExecutionStep);
+				
+				db.CassandraDBClose();
 			} catch (TException e) {
 				e.printStackTrace();
 			}

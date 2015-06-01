@@ -33,10 +33,10 @@ public class MapReduceReasonerJobConfig {
 	// Input from CassandraDB.COLUMNFAMILY_JUSTIFICATIONS
 	private static void configureCassandraInput(Job job, Set<Integer> filters) {
 		//Set the input
-        ConfigHelper.setInputInitialAddress(job.getConfiguration(), "localhost");
+        ConfigHelper.setInputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
         // Should not use 9160 port in cassandra 2.1.2 because new cql3 port is 9042, please refer to conf/cassandra.yaml
         //ConfigHelper.setInputRpcPort(job.getConfiguration(), "9160");	 
-        ConfigHelper.setInputPartitioner(job.getConfiguration(), "Murmur3Partitioner");
+        ConfigHelper.setInputPartitioner(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.partitioner);
         ConfigHelper.setInputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
         if (filters.size() == 0){
 	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
@@ -120,7 +120,8 @@ public class MapReduceReasonerJobConfig {
             
         }
         CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), CassandraDB.CQL_PAGE_ROW_SIZE);
-        ConfigHelper.setInputSplitSize(job.getConfiguration(), 180);
+        //Modifide by LiYang  
+        ConfigHelper.setInputSplitSize(job.getConfiguration(), 5000000);
         job.setInputFormatClass(CqlInputFormat.class);
 	    System.out.println("ConfigHelper.getInputSplitSize - input: " + ConfigHelper.getInputSplitSize(job.getConfiguration()));
 	    System.out.println("CqlConfigHelper.getInputPageRowSize - input: " + CqlConfigHelper.getInputPageRowSize(job.getConfiguration()));
@@ -134,8 +135,9 @@ public class MapReduceReasonerJobConfig {
         job.setOutputKeyClass(Map.class);
         job.setOutputValueClass(List.class);
         job.setOutputFormatClass(CqlOutputFormat.class);
-        ConfigHelper.setOutputInitialAddress(job.getConfiguration(), "localhost");
-        ConfigHelper.setOutputPartitioner(job.getConfiguration(), "Murmur3Partitioner");
+        ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
+        ConfigHelper.setOutputPartitioner(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.partitioner);
+
         ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
         String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
         		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? ";

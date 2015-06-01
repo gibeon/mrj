@@ -124,6 +124,7 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_RANGE_PROPERTY);
 				rangeSchemaTriples = db.loadMapIntoMemory(filters);
 			}
+			db.CassandraDBClose();
 		}catch(TTransportException tte){
 			tte.printStackTrace();
 		} catch (InvalidRequestException e) {

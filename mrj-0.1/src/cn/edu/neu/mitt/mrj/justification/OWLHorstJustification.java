@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.utils.TripleKeyMapComparator;
-
+//modified  cassandra java 2.0.5
 import com.datastax.driver.core.TupleValue;
 
 /**
@@ -171,10 +171,11 @@ public class OWLHorstJustification extends Configured implements Tool {
 			
 			step++;
 		}while (newExpanded > 0);
+		//modified  cassandra java 2.0.5
 		
 		CassandraDB db = null;
 		try{
-			db = new CassandraDB("localhost", 9160);
+			db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
 			db.getDBClient().set_keyspace(CassandraDB.KEYSPACE);
 			Set<Set<TupleValue>> justifications = db.getJustifications();
 			int count = 0; 
@@ -188,10 +189,13 @@ public class OWLHorstJustification extends Configured implements Tool {
 							" - <" + db.idToLabel(sub) + ", " + db.idToLabel(pre) + ", " + db.idToLabel(obj) + ">");
 				}
 			}
+			
+			db.CassandraDBClose();
+			
 		}catch(Exception e){
 			System.err.println(e.getMessage());
 		}
-
+	
 		
 		
 		System.out.println("Time (in seconds): " + (System.currentTimeMillis() - startTime) / 1000);

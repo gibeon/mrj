@@ -154,6 +154,8 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
 				subpropSchemaTriples = db.loadMapIntoMemory(filters);
 //				subpropSchemaTriples = FilesTriplesReader.loadMapIntoMemory("FILTER_ONLY_SUBPROP_SCHEMA", context);
+				
+				db.CassandraDBClose();
 			} catch (TTransportException e) {
 				e.printStackTrace();
 			} catch (InvalidRequestException e) {

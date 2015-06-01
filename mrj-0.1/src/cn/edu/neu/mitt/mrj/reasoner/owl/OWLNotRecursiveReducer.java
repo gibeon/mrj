@@ -239,6 +239,8 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 				// Added by WuGang 2015-01-27,
 				Map<Long, Collection<Long>> schemaInverseOfProperties_reverse = db.loadMapIntoMemory(filters, true);
 				schemaInverseOfProperties.putAll(schemaInverseOfProperties_reverse);
+				
+				db.CassandraDBClose();
 			}catch (TTransportException e) {
 				e.printStackTrace();
 			} catch (InvalidRequestException e) {

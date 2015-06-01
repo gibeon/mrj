@@ -111,6 +111,9 @@ public class RDFSSpecialPropsMapper extends Mapper<Long, Row, BytesWritable, Lon
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_LITERAL_SUBCLASS);
 				db.loadSetIntoMemory(literalSubclasses, filters, -1);
 			}
+			
+			db.CassandraDBClose();
+			
 		} catch(TTransportException tte){
 			tte.printStackTrace();
 		} catch (InvalidRequestException e) {

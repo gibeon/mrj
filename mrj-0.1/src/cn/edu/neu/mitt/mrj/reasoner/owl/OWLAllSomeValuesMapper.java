@@ -16,6 +16,7 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -150,6 +151,11 @@ public class OWLAllSomeValuesMapper extends Mapper<Long, Row, BytesWritable, Byt
 			makeJoin(onPropertyTmp, context, someValuesTmp, 
 					allValuesTmp, someValues, allValues,
 					onPropertySome, onPropertyAll);
+		
+		
+			db.CassandraDBClose();
+
+			
 		}catch (TTransportException e) {
 			e.printStackTrace();
 		} catch (InvalidRequestException e) {
@@ -231,4 +237,5 @@ public class OWLAllSomeValuesMapper extends Mapper<Long, Row, BytesWritable, Byt
 		}
 		
 	}
+
 }
