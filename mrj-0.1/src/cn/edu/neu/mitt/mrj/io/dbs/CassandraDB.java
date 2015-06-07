@@ -23,9 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.cassandra.cql3.QueryProcessor;
-import org.apache.cassandra.cql3.UntypedResultSet;
-import org.apache.cassandra.db.marshal.TupleType;
 import org.apache.cassandra.exceptions.RequestExecutionException;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
@@ -60,11 +57,9 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 //modified  cassandra java 2.0.5
 import com.datastax.driver.core.TupleValue;
+import com.datastax.driver.core.querybuilder.Delete.Where;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-
-
 //modified 
-import org.apache.cassandra.thrift.CassandraServer;
 
 
 /**
@@ -582,7 +577,7 @@ public class CassandraDB {
 		return loadMapIntoMemory(filters, false);
 	}
 	
-	// ·µ»ØµÄkey¾ÍÊÇtripleµÄsubject£¬valueÊÇobject
+	// ï¿½ï¿½ï¿½Øµï¿½keyï¿½ï¿½ï¿½ï¿½tripleï¿½ï¿½subjectï¿½ï¿½valueï¿½ï¿½object
 	public Map<Long, Collection<Long>> loadMapIntoMemory(Set<Integer> filters, boolean inverted) throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
 		long startTime = System.currentTimeMillis();
 
@@ -648,7 +643,18 @@ public class CassandraDB {
 		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
 	}
 
-	
+	// Added by WuGang 2015-06-08
+	public static void removeOriginalTriples(){
+		SimpleClientDataStax scds = new SimpleClientDataStax();
+		scds.connect(DEFAULT_HOST);
+		
+		Where dQuery = QueryBuilder.delete()
+				.from(KEYSPACE, COLUMNFAMILY_JUSTIFICATIONS)
+				.where(QueryBuilder.eq(COLUMN_RULE, ByteBufferUtil.bytes(0)));
+		scds.getSession().execute(dQuery);
+		
+		scds.close();		
+	}
 	
 	public static void main(String[] args) {
 		try {

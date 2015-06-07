@@ -37,7 +37,7 @@ public class OWLReasoner extends Configured implements Tool {
 	public static final String OWL_PROP_INHERITANCE_TMP = "/dir-tmp-prop-inheritance/";
 	public static final String OWL_PROP_INHERITANCE = "/dir-prop-inheritance/";
 	public static final String OWL_TRANSITIVITY_BASE = OWL_PROP_INHERITANCE_TMP + "dir-transitivity-base/";
-	public static final String OWL_TRANSITIVITY = "dir-transitivity/";	// Added by WuGang 2010-08-25£¬ÐÂ¼ÓµÄÄ¿Â¼
+	public static final String OWL_TRANSITIVITY = "dir-transitivity/";	// Added by WuGang 2010-08-25ï¿½ï¿½ï¿½Â¼Óµï¿½Ä¿Â¼
 
 	public static final String OWL_SYNONYMS_TABLE = "dir-table-synonyms/";
 	public static final String OWL_SYNONYMS_TABLE_NEW = "_table_synonyms_new/";
@@ -154,7 +154,7 @@ public class OWLReasoner extends Configured implements Tool {
 				break;
 			currentStep++;
 			long hasValueDerivation = inferHasValueStatements(args);
-			System.out.println("-----------inferHasValueStatements½áÊø");
+			System.out.println("-----------inferHasValueStatementsï¿½ï¿½ï¿½ï¿½");
 			derivedTriples += hasValueDerivation;
 			if (hasValueDerivation > 0) lastDerivationStep = currentStep;
 			
@@ -162,7 +162,7 @@ public class OWLReasoner extends Configured implements Tool {
 				break;
 			currentStep++;
 			long someAllDerivation = inferSomeAndAllValuesStatements(args);
-			System.out.println("-----------inferSomeAndAllValuesStatements½áÊø");
+			System.out.println("-----------inferSomeAndAllValuesStatementsï¿½ï¿½ï¿½ï¿½");
 			derivedTriples += someAllDerivation;
 			if (someAllDerivation > 0) lastDerivationStep = currentStep;
 			
@@ -230,7 +230,7 @@ public class OWLReasoner extends Configured implements Tool {
 	private long inferTransitivityStatements(String[] args) 
 											throws IOException, InterruptedException, ClassNotFoundException {
 		boolean derivedNewStatements = true;
-//		System.out.println("ÔÚinferTransitivityStatementsÀïÍ·¡£");
+//		System.out.println("ï¿½ï¿½inferTransitivityStatementsï¿½ï¿½Í·ï¿½ï¿½");
 		
 		// We'll not use filesystem but db.getTransitiveStatementsCount()
 		long derivation = 0;
@@ -242,7 +242,7 @@ public class OWLReasoner extends Configured implements Tool {
 		//modified 2015/5/19
 		//for(int i = 0;i <= 3; i++){
 		while ((beforeInferCount > 0) && derivedNewStatements && shouldInferTransitivity) {
-//			System.out.println("¿ªÊ¼ÔÚinferTransitivityStatementsµÄwhileÑ­»·ÖÐÑ°ÕÒ¡£");
+//			System.out.println("ï¿½ï¿½Ê¼ï¿½ï¿½inferTransitivityStatementsï¿½ï¿½whileÑ­ï¿½ï¿½ï¿½ï¿½Ñ°ï¿½Ò¡ï¿½");
 			level++;
 
 			//Configure input. Take only the directories that are two levels below
@@ -435,10 +435,10 @@ public class OWLReasoner extends Configured implements Tool {
 		step++;
 		
 		Set<Integer> filters = new HashSet<Integer>();
-		filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBCLASS);
-		filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
-		filters.add(TriplesUtils.SCHEMA_TRIPLE_EQUIVALENT_CLASS);
-		filters.add(TriplesUtils.SCHEMA_TRIPLE_EQUIVALENT_PROPERTY);
+//		filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBCLASS);
+//		filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
+//		filters.add(TriplesUtils.SCHEMA_TRIPLE_EQUIVALENT_CLASS);
+//		filters.add(TriplesUtils.SCHEMA_TRIPLE_EQUIVALENT_PROPERTY);
 
 		Job job = MapReduceReasonerJobConfig.createNewJob(
 				OWLReasoner.class,

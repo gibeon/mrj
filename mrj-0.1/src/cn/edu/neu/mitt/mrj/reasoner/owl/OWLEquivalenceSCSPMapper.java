@@ -95,7 +95,7 @@ public class OWLEquivalenceSCSPMapper extends Mapper<Long, Row, LongWritable, By
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
 				//modified 2015/5/31
-				//db.loadSetIntoMemory(subpropSchemaTriples, filters, -1);
+				db.loadSetIntoMemory(subpropSchemaTriples, filters, -1);
 			}
 			
 			if (subclassSchemaTriples == null) {
@@ -103,7 +103,7 @@ public class OWLEquivalenceSCSPMapper extends Mapper<Long, Row, LongWritable, By
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBCLASS);
 				//modified 2015/5/31
-				//db.loadSetIntoMemory(subclassSchemaTriples, filters, -1);
+				db.loadSetIntoMemory(subclassSchemaTriples, filters, -1);
 			}
 			db.CassandraDBClose();
 			//modified 2015/5/31
