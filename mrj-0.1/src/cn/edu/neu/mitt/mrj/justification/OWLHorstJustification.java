@@ -2,7 +2,7 @@
  * Project Name: mrj-0.1
  * File Name: OWLHorstJustification.java
  * @author Gang Wu
- * 2015Äê2ÔÂ5ÈÕ ÏÂÎç4:58:08
+ * 2015ï¿½ï¿½2ï¿½ï¿½5ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½4:58:08
  * 
  * Description: 
  * TODO
@@ -53,6 +53,8 @@ public class OWLHorstJustification extends Configured implements Tool {
 	public static long pre = -1;
 	public static long obj = -1;
 	public static Path justificationsDirBase = new Path("/justification");
+	
+	private boolean bClearOriginals = false;
 
 	/**
 	 * 
@@ -79,6 +81,10 @@ public class OWLHorstJustification extends Configured implements Tool {
 				numMapTasks = Integer.valueOf(args[++i]);
 			if (args[i].equalsIgnoreCase("--reducetasks")) 
 				numReduceTasks = Integer.valueOf(args[++i]);
+			
+			// Added by WuGang 2015-06-08
+			if (args[i].equalsIgnoreCase("--clearoriginals"))
+				bClearOriginals = true;
 		}
 	}
 
@@ -93,7 +99,7 @@ public class OWLHorstJustification extends Configured implements Tool {
 		Configuration conf = new Configuration();
 		try {
 			int step = 0;
-			Path justificationsDir = new Path(justificationsDirBase, String.valueOf(step)); // ¸ø¶¨Ä¿Â¼ÏÂ£¬Éú³ÉÒ»¸ö½ÐoriginalµÄÎÄ¼þÓÃÓÚ´æ´¢³õÊ¼´ýjustificationµÄtriple
+			Path justificationsDir = new Path(justificationsDirBase, String.valueOf(step)); // ï¿½ï¿½Ä¿Â¼ï¿½Â£ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½originalï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ú´æ´¢ï¿½ï¿½Ê¼ï¿½ï¿½justificationï¿½ï¿½triple
 			FileSystem fs = FileSystem.get(URI.create(justificationsDir.toString()), conf);
 			if (!fs.exists(justificationsDir)) {
 				SequenceFile.Writer writer = SequenceFile.createWriter(fs,
@@ -149,12 +155,19 @@ public class OWLHorstJustification extends Configured implements Tool {
 	
 
 	public long launchClosure(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+		parseArgs(args);
+		
+		// Added by WuGang 2015-06-08
+		if (bClearOriginals)
+			CassandraDB.removeOriginalTriples();
+
+		
 		long total = 0;			// Total justifications
 		long newExpanded = -1;	// count of explanations that expanded in this loop
 		long startTime = System.currentTimeMillis();
 		int step = 0;
 		
-		parseArgs(args);
+		
 		prepareInput(sub, pre, obj, false);	// Default it is not a literal.
 		
 		// find justifications
@@ -218,7 +231,7 @@ public class OWLHorstJustification extends Configured implements Tool {
 	
 	public static void main(String[] args) {
 		if (args.length < 2) {
-			System.out.println("USAGE: OWLHorstJustification [DerivedTriples base path] [Justifications base path] [options]");
+			System.out.println("USAGE: OWLHorstJustification [options]");
 			return;
 		}
 
