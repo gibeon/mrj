@@ -47,15 +47,15 @@ public class OWLAllSomeValuesMapper extends Mapper<Long, Row, BytesWritable, Byt
 	private int previousDerivation = -1;
 	
 	public void map(Long key, Row row, Context context) throws IOException, InterruptedException {
-
-		log.info("I'm in OWLAllSomeValuesMapper");
+		//ASS
+//		log.info("I'm in OWLAllSomeValuesMapper");
 		int step = row.getInt(CassandraDB.COLUMN_INFERRED_STEPS);
 		Triple value = CassandraDB.readJustificationFromMapReduceRow(row);
 
 		if (value.getPredicate() == TriplesUtils.RDF_TYPE
 				&& step >= previousDerivation) {
-			
-			log.info("And I met a triple with RDF_TYPE as predicate: " + value);
+			//DEL
+//			log.info("And I met a triple with RDF_TYPE as predicate: " + value);
 		
 			// 需要额外传送一个w
 			if (someValues.containsKey(value.getObject())) {	//找到了一个(x,rdf:type,w)这样的三元组，其中w满足v owl:someValuesFrom w

@@ -121,7 +121,7 @@ public class MapReduceReasonerJobConfig {
         }
         CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), CassandraDB.CQL_PAGE_ROW_SIZE);
         //Modifide by LiYang  
-        ConfigHelper.setInputSplitSize(job.getConfiguration(), 5000000);
+        ConfigHelper.setInputSplitSize(job.getConfiguration(), 10000000);
         job.setInputFormatClass(CqlInputFormat.class);
 	    System.out.println("ConfigHelper.getInputSplitSize - input: " + ConfigHelper.getInputSplitSize(job.getConfiguration()));
 	    System.out.println("CqlConfigHelper.getInputPageRowSize - input: " + CqlConfigHelper.getInputPageRowSize(job.getConfiguration()));

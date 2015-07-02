@@ -30,8 +30,7 @@ public class RDFSOWLReasoner {
 		
 		parseArgs(args);
 		
-		RDFSReasoner rdfsReasoner = new RDFSReasoner();
-		OWLReasoner owlReasoner = new OWLReasoner();
+
 		try {
 			long totalDerivation = 0;
 			boolean continueDerivation = true;
@@ -42,6 +41,14 @@ public class RDFSOWLReasoner {
 			
 			while (continueDerivation) {
 				//Do RDFS reasoning
+				/*
+				 * Modified  2015/7/1
+				 * Move rdfsReasoner owlReasoner inside the loop
+				 */
+				
+				RDFSReasoner rdfsReasoner = new RDFSReasoner();
+				OWLReasoner owlReasoner = new OWLReasoner();
+				
 				if (owlDerivation == 0 && !firstLoop) {
 					rdfsDerivation = 0;
 				} else {

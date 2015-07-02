@@ -5,7 +5,7 @@
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/ReasonMapreduce"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.USER_LIBRARY/DataStax"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/hadoop 0.2"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Cassandra2.1.2"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Cassandradriver2.1.2"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/cassandra2.1.6"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/cassandrajava2.1.6"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

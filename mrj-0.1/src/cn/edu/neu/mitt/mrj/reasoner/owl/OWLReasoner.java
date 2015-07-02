@@ -24,6 +24,7 @@ import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.io.files.readers.FilesTriplesReader;
 import cn.edu.neu.mitt.mrj.partitioners.MyHashPartitioner;
 import cn.edu.neu.mitt.mrj.reasoner.MapReduceReasonerJobConfig;
+import cn.edu.neu.mitt.mrj.utils.Cassandraconf;
 import cn.edu.neu.mitt.mrj.utils.FileUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
@@ -119,7 +120,16 @@ public class OWLReasoner extends Configured implements Tool {
 		
 		boolean firstCycle = true;
 		int currentStep = 0;
-		int lastDerivationStep = 0;
+		int lastDerivationStep = 0;		
+		
+		//Modified 2015/6/28
+		try {
+			db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
+			db.init();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		
 		do {
 			if (!firstCycle && lastDerivationStep == (currentStep - 4))
@@ -128,6 +138,8 @@ public class OWLReasoner extends Configured implements Tool {
 			System.out.println(">>>>>>>>>>> Start new OWL Reasoner loop <<<<<<<<<<<");
 			long propDerivation = inferPropertiesInheritance(args); 
 			System.out.println("----------- End inferPropertiesInheritance");
+			//Get Attention!
+			System.out.println("----------- Start inferTransitivityStatements");
 			derivedTriples = inferTransitivityStatements(args) + propDerivation;
 			System.out.println("----------- End inferTransitivityStatements");
 			if (derivedTriples > 0) 
@@ -239,8 +251,6 @@ public class OWLReasoner extends Configured implements Tool {
 		//modified 2015/5/19
 		long beforeInferCount = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE);
 		
-		//modified 2015/5/19
-		//for(int i = 0;i <= 3; i++){
 		while ((beforeInferCount > 0) && derivedNewStatements && shouldInferTransitivity) {
 //			System.out.println("��ʼ��inferTransitivityStatements��whileѭ����Ѱ�ҡ�");
 			level++;
@@ -270,10 +280,10 @@ public class OWLReasoner extends Configured implements Tool {
 			derivation = afterInferCount - beforeInferCount;
 			derivedNewStatements = (derivation > 0);
 			beforeInferCount = afterInferCount;		// Update beforeInferCount
+			//System.out.println(" loop ");
 		}
 		
 		previousTransitiveDerivation = step;
-
 		return derivation;
 	}
 
@@ -288,13 +298,7 @@ public class OWLReasoner extends Configured implements Tool {
 			int derivationStep = 1;
 			long previousStepDerived = 0; 	// Added by WuGang 2015-01-30
 			
-			//modified 2015/5/19
-			//int i = 0;
 			while (derivedSynonyms) {
-				//modified 2015/5/19
-				//i++;
-				//if (i == 3)
-				//	return 0;
 				if (db.getRowCountAccordingTripleType(TriplesUtils.DATA_TRIPLE_SAME_AS)==0)	// We need not to infer on SameAs
 					return 0;
 

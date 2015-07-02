@@ -86,7 +86,7 @@ public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable
 			oTriple.setRobject(TriplesUtils.RDFS_CLASS);
 			context.getCounter("RDFS derived triples", "subclass of resource").increment(1);
 			CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
-//			context.write(source, oTriple);
+			//context.write(source, oTriple);
 			break;
 		case 4:	// 没有对应的rdfs rule啊
 		case 5:	// 没有对应的rdfs rule啊

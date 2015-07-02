@@ -53,13 +53,21 @@ import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.Statement;
 //modified  cassandra java 2.0.5
 import com.datastax.driver.core.TupleValue;
+import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.querybuilder.Delete.Where;
+import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 //modified 
+import com.datastax.driver.core.querybuilder.Select;
 
 
 /**
@@ -231,6 +239,26 @@ public class CassandraDB {
         catch (InvalidRequestException e) {
             logger.error("failed to create table " + KEYSPACE + "."  + COLUMNFAMILY_RESULTS, e);
         }
+        //Create resultrow table
+        String cquery = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "."  + "resultrows" + 
+                " ( " + 
+                COLUMN_SUB + " bigint, " +			// partition key
+                COLUMN_PRE + " bigint, " +			// partition key
+                COLUMN_OBJ + " bigint, " +			// partition key
+                COLUMN_IS_LITERAL + " boolean, " +	// partition key
+                COLUMN_TRIPLE_TYPE + " int, " +
+                COLUMN_RULE + " int, " +
+                COLUMN_V1 + " bigint, " +
+                COLUMN_V2 + " bigint, " +
+                COLUMN_V3 + " bigint, " +
+//                COLUMN_TRIPLE_TYPE + " int, " +
+                COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
+                "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +  ", " + COLUMN_IS_LITERAL + "), " +
+                COLUMN_TRIPLE_TYPE + ", " + COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +  
+                //", " + COLUMN_TRIPLE_TYPE +
+                " ) ) ";
+        client.execute_cql3_query(ByteBufferUtil.bytes(cquery), Compression.NONE, ConsistencyLevel.ONE);
+        
 
     }
     
@@ -267,8 +295,9 @@ public class CassandraDB {
 	 * @return row count.
 	 */
 	public long getRowCountAccordingTripleType(int tripletype){
+		//ALLOW FILTERING
 		String query = "SELECT COUNT(*) FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
-				" WHERE " + COLUMN_TRIPLE_TYPE + " = " + tripletype;
+				" WHERE " + COLUMN_TRIPLE_TYPE + " = " + tripletype + " ALLOW FILTERING";
 
 		long num = 0;
 		try {
@@ -409,7 +438,6 @@ public class CassandraDB {
 //      variables.add(ByteBuffer.wrap(new byte[]{zero}));
     	variables.add(ByteBufferUtil.bytes(source.getStep()));		// It corresponds to COLUMN_INFERRED_STEPS where steps = 0 means an original triple 
         context.write(keys, variables);
-		
 	}
 	
 	public boolean loadSetIntoMemory(Set<Long> schemaTriples, Set<Integer> filters, int previousStep) throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
@@ -428,14 +456,15 @@ public class CassandraDB {
 		return null;
 	}
 	
-	//modified  cassandra java 2.0.5
-	
 	public static Set<Set<TupleValue>> getJustifications() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException, IOException, ClassNotFoundException, RequestExecutionException{
 		Set<Set<TupleValue>> results = new HashSet<Set<TupleValue>>();
 		
 //		String query = "SELECT " + COLUMN_JUSTIFICATION + " FROM " + KEYSPACE + "."  + COLUMNFAMILY_RESULTS;
 		SimpleClientDataStax scds = new SimpleClientDataStax();
 		scds.connect(DEFAULT_HOST);
+		
+		//Modified 2015-6-25
+		//From  COLUMNFAMILY_RESULTS to justifications	??\\
 		Statement statement = QueryBuilder.select().all().from(KEYSPACE, COLUMNFAMILY_RESULTS);
 		List<Row> rows = scds.getSession().execute(statement).all();
 
@@ -496,7 +525,7 @@ public class CassandraDB {
     	byte zero = 0;
 		Set<Triple> tracingEntries = new HashSet<Triple>(); 
 		
-		String query = "SELECT * FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + " WHERE " + 
+		String query = "SELECT * FROM " + KEYSPACE + "."  + "resultrows" + " WHERE " + 
 				COLUMN_SUB + "=? AND " + COLUMN_PRE + "=? AND " + COLUMN_OBJ + "=? AND " + COLUMN_IS_LITERAL + "=?";
 		CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
     	List<ByteBuffer> list = new ArrayList<ByteBuffer>();
@@ -534,9 +563,14 @@ public class CassandraDB {
 		logger.info("In CassandraDB's loadSetIntoMemory");
 		
 		// Require an index created on COLUMN_TRIPLE_TYPE column
+		/*
+		 * Be Attention
+		 * add ALLOW FILTERING
+		 * 2015/6/12
+		 */
         String query = "SELECT " + COLUMN_SUB + ", " + COLUMN_OBJ + ", " + COLUMN_INFERRED_STEPS +
         		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS +  
-                " WHERE " + COLUMN_TRIPLE_TYPE + " = ? ";
+                " WHERE " + COLUMN_TRIPLE_TYPE + " = ? " + " ALLOW FILTERING";
 //        System.out.println(query);
         
         CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
@@ -578,6 +612,11 @@ public class CassandraDB {
 	}
 	
 	// ï¿½ï¿½ï¿½Øµï¿½keyï¿½ï¿½ï¿½ï¿½tripleï¿½ï¿½subjectï¿½ï¿½valueï¿½ï¿½object
+	/*
+	 * Be Attention
+	 * add ALLOW FILTERING
+	 * 2015/6/12
+	 */
 	public Map<Long, Collection<Long>> loadMapIntoMemory(Set<Integer> filters, boolean inverted) throws IOException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
 		long startTime = System.currentTimeMillis();
 
@@ -588,7 +627,7 @@ public class CassandraDB {
 		// Require an index created on COLUMN_TRIPLE_TYPE column
         String query = "SELECT " + COLUMN_SUB + ", " + COLUMN_OBJ + ", " + COLUMN_INFERRED_STEPS +
         		" FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS +  
-                " WHERE " + COLUMN_TRIPLE_TYPE + " = ? ";
+                " WHERE " + COLUMN_TRIPLE_TYPE + " = ? " + " ALLOW FILTERING";
         
         CqlPreparedResult preparedResult = client.prepare_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE);
 
@@ -644,17 +683,158 @@ public class CassandraDB {
 	}
 
 	// Added by WuGang 2015-06-08
-	public static void removeOriginalTriples(){
-		SimpleClientDataStax scds = new SimpleClientDataStax();
-		scds.connect(DEFAULT_HOST);
-		
-		Where dQuery = QueryBuilder.delete()
-				.from(KEYSPACE, COLUMNFAMILY_JUSTIFICATIONS)
-				.where(QueryBuilder.eq(COLUMN_RULE, ByteBufferUtil.bytes(0)));
-		scds.getSession().execute(dQuery);
-		
-		scds.close();		
+
+	
+	public static ResultSet getRows(){
+		Builder builder = Cluster.builder();
+		builder.addContactPoint(DEFAULT_HOST);
+		SocketOptions socketoptions= new SocketOptions().setKeepAlive(true).setReadTimeoutMillis(10 * 10000).setConnectTimeoutMillis(5 * 10000);
+		Cluster clu = builder.build();
+		Session session = clu.connect();
+		SimpleStatement statement = new SimpleStatement("SELECT sub, obj, pre, isliteral FROM mrjks.justifications where inferredsteps = 0");
+		statement.setFetchSize(100);
+		ResultSet results = session.execute(statement);
+		System.out.println("------------------" + results + "--------------");
+		return results;
 	}
+	
+	public static boolean delornot = false;
+	
+	public static void removeOriginalTriples(){
+		if (delornot == true)
+			return;
+		delornot = true;
+		//Ö´ÐÐ²»Ó¦ÖÐ¶Ï¡£
+		Builder builder = Cluster.builder();
+		builder.addContactPoint(DEFAULT_HOST);
+		SocketOptions socketoptions= new SocketOptions().setKeepAlive(true).setReadTimeoutMillis(10 * 10000).setConnectTimeoutMillis(5 * 10000);
+		Cluster clu = builder.build();
+		Session session = clu.connect();
+		
+        String cquery1 = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "."  + "ruleiszero" + 
+                " ( " + 
+                COLUMN_SUB + " bigint, " +			// partition key
+                COLUMN_PRE + " bigint, " +			// partition key
+                COLUMN_OBJ + " bigint, " +			// partition key
+                COLUMN_IS_LITERAL + " boolean, " +	// partition key
+                COLUMN_TRIPLE_TYPE + " int, " +
+                COLUMN_RULE + " int, " +
+                COLUMN_V1 + " bigint, " +
+                COLUMN_V2 + " bigint, " +
+                COLUMN_V3 + " bigint, " +
+//                COLUMN_TRIPLE_TYPE + " int, " +
+                COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
+                "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +  ", " + COLUMN_IS_LITERAL + "), " +
+                COLUMN_TRIPLE_TYPE + ", " + COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +  
+                //", " + COLUMN_TRIPLE_TYPE +
+                " ) ) ";
+        session.execute(cquery1);
+
+		//SELECT ALL AND DEL ALL
+		SimpleStatement statement = new SimpleStatement("SELECT * FROM mrjks.justifications");
+		statement.setFetchSize(100);
+		ResultSet results = session.execute(statement);
+		
+		System.out.println("--------DEL ALL----------");
+		for (Row row : results){
+			
+			if(row.getInt(COLUMN_RULE) != 0){
+				session.execute("INSERT INTO mrjks.ruleiszero(sub, pre, obj, isliteral, tripletype, rule, v1, v2, v3, inferredsteps)" + 
+			"VALUES (" + 
+						row.getLong(COLUMN_SUB) + "," + 
+			row.getLong(COLUMN_PRE) + "," + 
+						row.getLong(COLUMN_OBJ) + "," + 
+			row.getBool(COLUMN_IS_LITERAL) + "," + 
+						row.getInt(COLUMN_TRIPLE_TYPE) + "," +
+			row.getInt(COLUMN_RULE) + "," +  
+						row.getLong(COLUMN_V1) + "," + 
+			row.getLong(COLUMN_V2) + "," + 
+						row.getLong(COLUMN_V3) + "," + 
+			row.getInt(COLUMN_INFERRED_STEPS) + ");");
+				System.out.println("-------Insert ----------");
+				System.out.println(row);
+			}
+			
+			Statement delete = QueryBuilder.delete()
+			.from(KEYSPACE, COLUMNFAMILY_JUSTIFICATIONS)
+			.where(QueryBuilder.eq(COLUMN_SUB, row.getLong(CassandraDB.COLUMN_SUB)))
+			.and(QueryBuilder.eq(COLUMN_PRE, row.getLong(CassandraDB.COLUMN_PRE)))
+			.and(QueryBuilder.eq(COLUMN_OBJ, row.getLong(CassandraDB.COLUMN_OBJ)))
+			.and(QueryBuilder.eq(COLUMN_IS_LITERAL, row.getBool(COLUMN_IS_LITERAL)));
+			session.execute(delete);
+			System.out.println(row);
+		}
+		
+//		SimpleClientDataStax scds = new SimpleClientDataStax();
+//		scds.connect(DEFAULT_HOST);
+//		
+//		System.out.println("Select Primary Key");
+//		//modified select partition key and delete using partition key
+//		Statement select = QueryBuilder.select()
+//				.all()
+//				.from(KEYSPACE, COLUMNFAMILY_JUSTIFICATIONS)
+//				.where(QueryBuilder.eq(COLUMN_INFERRED_STEPS, 0));
+//		select.setFetchSize(100);
+//		ResultSet result = scds.getSession().execute(select);
+//		//List<Row> rows = scds.getSession().executeAsync(statement);		
+//		//List<Row> rows = scds.getSession().execute(select).all();
+//		
+//		while(true){
+//			Row delrow = result.one();
+//			if(delrow == null)
+//				break;
+//			Where dQuery = QueryBuilder.delete()
+//					.from(KEYSPACE, COLUMNFAMILY_JUSTIFICATIONS)
+//					.where(QueryBuilder.eq(COLUMN_SUB, delrow.getLong(CassandraDB.COLUMN_SUB)))
+//					.and(QueryBuilder.eq(COLUMN_PRE, delrow.getLong(CassandraDB.COLUMN_PRE)))
+//					.and(QueryBuilder.eq(COLUMN_OBJ, delrow.getLong(CassandraDB.COLUMN_OBJ)))
+//					.and(QueryBuilder.eq(COLUMN_IS_LITERAL, delrow.getBool(COLUMN_IS_LITERAL)));
+//			System.out.println(delrow);
+//			session.execute(dQuery);
+//		}		
+		
+//		Where dQuery = QueryBuilder.delete()
+//				.from(KEYSPACE, COLUMNFAMILY_JUSTIFICATIONS)
+//				.where(QueryBuilder.eq(COLUMN_RULE, ByteBufferUtil.bytes(0)));
+//				scds.getSession().execute(dQuery);
+		
+//		scds.close();		
+		
+	}
+	
+	//create by LiYang
+//	public static void createReasonTable(){
+//		SimpleClientDataStax scds = new SimpleClientDataStax();
+//		scds.connect(DEFAULT_HOST);
+//		//Statement st = QueryBuilder
+//		
+//		for (int i = 1; i <= 7; i++ ){			
+//			System.out.println("Select Primary Key");
+//			//modified select partition key and delete using partition key
+//			Statement select = QueryBuilder.select()
+//					.all()
+//					.from(KEYSPACE, COLUMNFAMILY_JUSTIFICATIONS)
+//					.where(QueryBuilder.eq(COLUMN_INFERRED_STEPS, i));
+//			select.setFetchSize(100);
+//			ResultSet result = scds.getSession().execute(select);
+//			
+//			Session session = scds.getSession();
+//			while(true){
+//				Row insertrow = result.one();
+//				if(insertrow == null)
+//					break;
+//				Insert insert = QueryBuilder
+//						.insertInto(KEYSPACE, COLUMNFAMILY_JUSTIFICATIONS)
+//						.value(COLUMN_SUB, insertrow.getLong(CassandraDB.COLUMN_SUB))
+//						.value(COLUMN_PRE, insertrow.getLong(CassandraDB.COLUMN_PRE))
+//						.value(COLUMN_OBJ, insertrow.getLong(CassandraDB.COLUMN_OBJ))
+//						.value(COLUMN_IS_LITERAL, insertrow.getBool(COLUMN_IS_LITERAL))
+//						.value(COLUMN_TRIPLE_TYPE, insertrow.getLong(CassandraDB.COLUMN_TRIPLE_TYPE))
+//						.value(COLUMN_SUB, insertrow.getLong(CassandraDB.COLUMN_SUB));
+//						
+//			}	
+//		}
+//	}
 	
 	public static void main(String[] args) {
 		try {

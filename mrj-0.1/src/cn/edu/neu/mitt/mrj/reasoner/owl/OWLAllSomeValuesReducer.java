@@ -33,7 +33,7 @@ public class OWLAllSomeValuesReducer extends Reducer<BytesWritable, BytesWritabl
 
 	@Override
 	public void reduce(BytesWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
-		log.info("I'm in OWLAllSomeValuesReducer");
+		//log.info("I'm in OWLAllSomeValuesReducer");
 		
 		types.clear();
 		resources.clear();
