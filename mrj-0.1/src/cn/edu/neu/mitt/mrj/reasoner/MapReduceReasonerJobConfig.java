@@ -2,7 +2,7 @@
  * Project Name: mrj-0.1
  * File Name: MapReduceJobConfig.java
  * @author Gang Wu
- * 2014Äê12ÔÂ28ÈÕ ÉÏÎç10:44:16
+ * 2014ï¿½ï¿½12ï¿½ï¿½28ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½10:44:16
  * 
  * Description: 
  * TODO
@@ -31,30 +31,60 @@ public class MapReduceReasonerJobConfig {
 	
 	
 	// Input from CassandraDB.COLUMNFAMILY_JUSTIFICATIONS
-	private static void configureCassandraInput(Job job, Set<Integer> filters) {
+	private static void configureCassandraInput(Job job, Set<Integer> typeFilters, Set<Integer> stepFilters) {
 		//Set the input
         ConfigHelper.setInputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
         // Should not use 9160 port in cassandra 2.1.2 because new cql3 port is 9042, please refer to conf/cassandra.yaml
         //ConfigHelper.setInputRpcPort(job.getConfiguration(), "9160");	 
         ConfigHelper.setInputPartitioner(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.partitioner);
         ConfigHelper.setInputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
-        if (filters.size() == 0){
-	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
-	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
-	        		" WHERE TOKEN(" + 
-	        		CassandraDB.COLUMN_SUB + ", " + 
-	        		CassandraDB.COLUMN_PRE + ", " + 
-	        		CassandraDB.COLUMN_OBJ + ", " + 
-	        		CassandraDB.COLUMN_IS_LITERAL +
-	        		") > ? AND TOKEN(" + 
-	        		CassandraDB.COLUMN_SUB + ", " + 
-	        		CassandraDB.COLUMN_PRE + ", " + 
-					CassandraDB.COLUMN_OBJ + ", " + 
-	        		CassandraDB.COLUMN_IS_LITERAL + 
-	        		") <= ? ALLOW FILTERING");
+        if (typeFilters.size() == 0){
+        	
+        	if (stepFilters.size() == 0)
+		        CqlConfigHelper.setInputCql(job.getConfiguration(), 
+		        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+		        		" WHERE TOKEN(" + 
+		        		CassandraDB.COLUMN_SUB + ", " + 
+		        		CassandraDB.COLUMN_PRE + ", " + 
+		        		CassandraDB.COLUMN_OBJ + ", " + 
+		        		CassandraDB.COLUMN_IS_LITERAL +
+		        		") > ? AND TOKEN(" + 
+		        		CassandraDB.COLUMN_SUB + ", " + 
+		        		CassandraDB.COLUMN_PRE + ", " + 
+						CassandraDB.COLUMN_OBJ + ", " + 
+		        		CassandraDB.COLUMN_IS_LITERAL + 
+		        		") <= ? ALLOW FILTERING");
+        	else{
+            	Integer max = java.util.Collections.max(stepFilters);
+            	Integer min = java.util.Collections.min(stepFilters);
+
+            	
+    	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
+    	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+    	        		" WHERE TOKEN(" + 
+    	        		CassandraDB.COLUMN_SUB + ", " + 
+    	        		CassandraDB.COLUMN_PRE + ", " + 
+    	        		CassandraDB.COLUMN_OBJ + ", " + 
+    	        		CassandraDB.COLUMN_IS_LITERAL +
+    	        		") > ? AND TOKEN(" + 
+    	        		CassandraDB.COLUMN_SUB + ", " + 
+    	        		CassandraDB.COLUMN_PRE + ", " + 
+    					CassandraDB.COLUMN_OBJ + ", " + 
+    	        		CassandraDB.COLUMN_IS_LITERAL + 
+    	        		") <= ? AND " +
+    	        		CassandraDB.COLUMN_STEP + " >= " + min + " AND " +
+    	        		CassandraDB.COLUMN_STEP + " <= " + max +
+    	        		" ALLOW FILTERING");
+        	}
+        		
         	
         }
-        else if (filters.size() == 1){
+        else if (typeFilters.size() == 1){
+        	if (stepFilters.size() != 0){	// stepFilter is only for handling transitive property
+        		System.err.println("This is not supported!!!");
+        		return;
+        	}
+        	
 	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
 	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
 	        		" WHERE TOKEN(" + 
@@ -68,17 +98,23 @@ public class MapReduceReasonerJobConfig {
 					CassandraDB.COLUMN_OBJ + ", " + 
 	        		CassandraDB.COLUMN_IS_LITERAL + 
 	        		") <= ? AND " +
-	        		CassandraDB.COLUMN_TRIPLE_TYPE + " = " + filters.toArray()[0] +
+	        		CassandraDB.COLUMN_TRIPLE_TYPE + " = " + typeFilters.toArray()[0] +
 	        		" ALLOW FILTERING");
         }else{
+        	if (stepFilters.size() != 0){	// stepFilter is only for handling transitive property
+        		System.err.println("This is not supported!!!");
+        		return;
+        	}
+
+        	
         	// The support of IN clause in cassandra db's SELECT is restricted. 
         	// So we have to try to manually cluster the values in the filters.
         	//     see http://www.datastax.com/documentation/cql/3.1/cql/cql_reference/select_r.html#reference_ds_d35_v2q_xj__selectIN
         	System.out.println("<<<<<<<<The support of IN clause in cassandra db's SELECT is restricted.>>>>>>>>>");
         	System.out.println("<<<<<<<<So we have to try to manually cluster the values in the filters.>>>>>>>>>");
         	
-        	Integer max = java.util.Collections.max(filters);
-        	Integer min = java.util.Collections.min(filters);
+        	Integer max = java.util.Collections.max(typeFilters);
+        	Integer min = java.util.Collections.min(typeFilters);
 
         	
 	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
@@ -147,12 +183,12 @@ public class MapReduceReasonerJobConfig {
 	
 	// In each derivation, we may create a set of jobs
 	public static Job createNewJob(Class<?> classJar, String jobName, 
-			Set<Integer> filters, int numMapTasks, int numReduceTasks,
+			Set<Integer> typeFilters, Set<Integer> stepFilters, int numMapTasks, int numReduceTasks,
 			boolean bConfigCassandraInput, boolean bConfigCassandraOutput)
 		throws IOException {
 		Configuration conf = new Configuration();
 		conf.setInt("maptasks", numMapTasks);
-		conf.set("input.filter", filters.toString());
+		conf.set("input.filter", typeFilters.toString());
 	    
 		Job job = new Job(conf);
 		job.setJobName(jobName);
@@ -160,7 +196,7 @@ public class MapReduceReasonerJobConfig {
 	    job.setNumReduceTasks(numReduceTasks);
 	    
 	    if (bConfigCassandraInput)
-	    	configureCassandraInput(job, filters);
+	    	configureCassandraInput(job, typeFilters, stepFilters);
 	    if (bConfigCassandraOutput)
 	    	configureCassandraOutput(job);
 	    

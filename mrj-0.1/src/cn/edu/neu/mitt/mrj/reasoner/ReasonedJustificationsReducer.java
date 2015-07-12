@@ -12,8 +12,6 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 
 public class ReasonedJustificationsReducer extends Reducer<Text, IntWritable, Map<String, ByteBuffer>, List<ByteBuffer>>{

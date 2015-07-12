@@ -31,7 +31,7 @@ public class SelectInferRowsMap extends Mapper<ByteBuffer, Row, Map<String, Byte
 		ResultSet results = session.execute(statement);
 		
 		System.out.println("---------MAP----------");
-		Map<String, ByteBuffer> keys = new HashMap<>();
+		Map<String, ByteBuffer> keys = new HashMap<String, ByteBuffer>();
 		ByteBuffer inferredsteps;
 		for (Row rows : results){
 			if (rows.getInt(CassandraDB.COLUMN_RULE) != 0) {

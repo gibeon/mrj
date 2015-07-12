@@ -287,6 +287,36 @@ public class CassandraDB {
 		return client;
 	}
 	
+	
+	/**
+	 * Get the row count according to the COLUMN_INFERRED_STEPS.
+	 * @return row count.
+	 */
+	public long getRowCountAccordingInferredSteps(int level){
+		//ALLOW FILTERING
+		String query = "SELECT COUNT(*) FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
+				" WHERE " + COLUMN_INFERRED_STEPS + " = " + level + " ALLOW FILTERING";
+
+		long num = 0;
+		try {
+			CqlResult cqlresult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+			num = ByteBufferUtil.toLong(cqlresult.getRows().get(0).getColumns().get(0).value);
+		} catch (InvalidRequestException e) {
+			e.printStackTrace();
+		} catch (UnavailableException e) {
+			e.printStackTrace();
+		} catch (TimedOutException e) {
+			e.printStackTrace();
+		} catch (SchemaDisagreementException e) {
+			e.printStackTrace();
+		} catch (TException e) {
+			e.printStackTrace();
+		}
+		
+		return num;
+	}
+	
+	
 	//TriplesUtils.SYNONYMS_TABLE
 	//TriplesUtils.TRANSITIVE_TRIPLE
 	//TriplesUtils.DATA_TRIPLE_SAME_AS
@@ -318,6 +348,40 @@ public class CassandraDB {
 		return num;
 	}
 	
+	
+	/**
+	 * Get the row count according to the triple type.
+	 * @return row count.
+	 */
+	public long getRowCountAccordingTripleTypeWithLimitation(int tripletype, int limit){
+		//ALLOW FILTERING
+		String query = "";
+		if (limit <= 0)
+			query = "SELECT COUNT(*) FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
+					" WHERE " + COLUMN_TRIPLE_TYPE + " = " + tripletype + " ALLOW FILTERING";
+		else
+			query = "SELECT COUNT(*) FROM " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + 
+					" WHERE " + COLUMN_TRIPLE_TYPE + " = " + tripletype + " LIMIT " + limit + " ALLOW FILTERING ";
+
+		long num = 0;
+		try {
+			CqlResult cqlresult = client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+			num = ByteBufferUtil.toLong(cqlresult.getRows().get(0).getColumns().get(0).value);
+		} catch (InvalidRequestException e) {
+			e.printStackTrace();
+		} catch (UnavailableException e) {
+			e.printStackTrace();
+		} catch (TimedOutException e) {
+			e.printStackTrace();
+		} catch (SchemaDisagreementException e) {
+			e.printStackTrace();
+		} catch (TException e) {
+			e.printStackTrace();
+		}
+		
+		return num;
+	}
+
 
 	/**
 	 * Get the row count according to the type of rule.
@@ -704,7 +768,7 @@ public class CassandraDB {
 		if (delornot == true)
 			return;
 		delornot = true;
-		//ִ�в�Ӧ�жϡ�
+		//ִ�в�Ӧ�жϡ�
 		Builder builder = Cluster.builder();
 		builder.addContactPoint(DEFAULT_HOST);
 		SocketOptions socketoptions= new SocketOptions().setKeepAlive(true).setReadTimeoutMillis(10 * 10000).setConnectTimeoutMillis(5 * 10000);
