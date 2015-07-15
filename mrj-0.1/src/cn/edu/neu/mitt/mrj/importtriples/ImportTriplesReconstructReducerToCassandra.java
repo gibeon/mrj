@@ -2,7 +2,7 @@
  * Project Name: mrj-0.1
  * File Name: ImportTriplesReconstructReducerToCassandra.java
  * @author Gang Wu
- * 2014Äê10ÔÂ28ÈÕ ÏÂÎç10:35:24
+ * 2014ï¿½ï¿½10ï¿½ï¿½28ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½10:35:24
  * 
  * Description: 
  * Send reducer output to Cassandra DB by representing triples with ids
@@ -78,7 +78,7 @@ public class ImportTriplesReconstructReducerToCassandra extends
 		}
 		
 		if (counter != 3) {
-			// Modified by WuGang 2010-12-3, ÔÊÐí³¬¹ý3Ôª×é³öÏÖ£¬µ«ÊÇÒª±¨¾¯£¡
+			// Modified by WuGang 2010-12-3, ï¿½ï¿½ï¿½?ï¿½ï¿½3Ôªï¿½ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			log.error("Found a non-triple when reconstructing. The count num is " + counter + ", and triple is " + oValue);
 //			throw new IOException("Triple is not reconstructed!");
 		}
@@ -107,7 +107,8 @@ public class ImportTriplesReconstructReducerToCassandra extends
     	// the length of boolean type in cassandra is one byte!!!!!!!!
     	// For column inferred, init it as false i.e. zero
 //      variables.add(ByteBuffer.wrap(new byte[]{zero}));
-    	variables.add(ByteBufferUtil.bytes(0));		// It corresponds to COLUMN_INFERRED_STEPS where steps = 0 means an original triple 
+    	variables.add(ByteBufferUtil.bytes(0));		// It corresponds to COLUMN_INFERRED_STEPS where steps = 0 means an original triple
+    	variables.add(ByteBufferUtil.bytes(0));		// Added by WuGang, 2015-07-15, to support transitive level
         context.write(keys, variables);
 	}
 

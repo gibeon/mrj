@@ -34,8 +34,10 @@ public class ReasonedJustificationsReducer extends Reducer<Text, IntWritable, Ma
 			
 			//prepare the insert variables collection
 			List<ByteBuffer> variables = new ArrayList<ByteBuffer>();
-			int var = Integer.parseInt(value.toString());
-			variables.add(ByteBufferUtil.bytes(var));
+			int var_inferredsteps = Integer.parseInt(value.toString());
+			variables.add(ByteBufferUtil.bytes(var_inferredsteps));
+			int var_transitivelevel = Integer.parseInt(splitkeys[9]);
+			variables.add(ByteBufferUtil.bytes(var_transitivelevel));
 			context.write(keys, variables);
 		}
 

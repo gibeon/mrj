@@ -31,7 +31,7 @@ public class MapReduceReasonerJobConfig {
 	
 	
 	// Input from CassandraDB.COLUMNFAMILY_JUSTIFICATIONS
-	private static void configureCassandraInput(Job job, Set<Integer> typeFilters, Set<Integer> stepFilters) {
+	private static void configureCassandraInput(Job job, Set<Integer> typeFilters, Set<Integer> transitiveLevelFilters, int certainStep) {
 		//Set the input
         ConfigHelper.setInputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
         // Should not use 9160 port in cassandra 2.1.2 because new cql3 port is 9042, please refer to conf/cassandra.yaml
@@ -40,7 +40,7 @@ public class MapReduceReasonerJobConfig {
         ConfigHelper.setInputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
         if (typeFilters.size() == 0){
         	
-        	if (stepFilters.size() == 0)
+        	if (transitiveLevelFilters.size() == 0)
 		        CqlConfigHelper.setInputCql(job.getConfiguration(), 
 		        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
 		        		" WHERE TOKEN(" + 
@@ -55,8 +55,8 @@ public class MapReduceReasonerJobConfig {
 		        		CassandraDB.COLUMN_IS_LITERAL + 
 		        		") <= ? ALLOW FILTERING");
         	else{
-            	Integer max = java.util.Collections.max(stepFilters);
-            	Integer min = java.util.Collections.min(stepFilters);
+            	Integer max = java.util.Collections.max(transitiveLevelFilters);
+            	Integer min = java.util.Collections.min(transitiveLevelFilters);
 
             	
     	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
@@ -72,15 +72,16 @@ public class MapReduceReasonerJobConfig {
     					CassandraDB.COLUMN_OBJ + ", " + 
     	        		CassandraDB.COLUMN_IS_LITERAL + 
     	        		") <= ? AND " +
-    	        		CassandraDB.COLUMN_STEP + " >= " + min + " AND " +
-    	        		CassandraDB.COLUMN_STEP + " <= " + max +
+    	        		CassandraDB.COLUMN_INFERRED_STEPS + " = " + certainStep + " AND " + 
+    	        		CassandraDB.COLUMN_TRANSITIVE_LEVELS + " >= " + min + " AND " +
+    	        		CassandraDB.COLUMN_TRANSITIVE_LEVELS + " <= " + max +
     	        		" ALLOW FILTERING");
         	}
         		
         	
         }
         else if (typeFilters.size() == 1){
-        	if (stepFilters.size() != 0){	// stepFilter is only for handling transitive property
+        	if (transitiveLevelFilters.size() != 0){	// stepFilter is only for handling transitive property
         		System.err.println("This is not supported!!!");
         		return;
         	}
@@ -101,7 +102,7 @@ public class MapReduceReasonerJobConfig {
 	        		CassandraDB.COLUMN_TRIPLE_TYPE + " = " + typeFilters.toArray()[0] +
 	        		" ALLOW FILTERING");
         }else{
-        	if (stepFilters.size() != 0){	// stepFilter is only for handling transitive property
+        	if (transitiveLevelFilters.size() != 0){	// stepFilter is only for handling transitive property
         		System.err.println("This is not supported!!!");
         		return;
         	}
@@ -176,14 +177,16 @@ public class MapReduceReasonerJobConfig {
 
         ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
         String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
-        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? ";
+        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=?, " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=?";
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
 	}
 
 	
 	// In each derivation, we may create a set of jobs
+	// certainStep is optional, if it is specified then we can use it to filter transitiveLevel with non-equal operator 
+	//    (see cql specification)  
 	public static Job createNewJob(Class<?> classJar, String jobName, 
-			Set<Integer> typeFilters, Set<Integer> stepFilters, int numMapTasks, int numReduceTasks,
+			Set<Integer> typeFilters, Set<Integer> transitiveLevelFilters, int certainStep, int numMapTasks, int numReduceTasks,
 			boolean bConfigCassandraInput, boolean bConfigCassandraOutput)
 		throws IOException {
 		Configuration conf = new Configuration();
@@ -196,7 +199,7 @@ public class MapReduceReasonerJobConfig {
 	    job.setNumReduceTasks(numReduceTasks);
 	    
 	    if (bConfigCassandraInput)
-	    	configureCassandraInput(job, typeFilters, stepFilters);
+	    	configureCassandraInput(job, typeFilters, transitiveLevelFilters, certainStep);
 	    if (bConfigCassandraOutput)
 	    	configureCassandraOutput(job);
 	    

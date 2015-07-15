@@ -84,6 +84,7 @@ public class RDFSReasoner extends Configured implements Tool {
 				"RDFS subproperty inheritance reasoning", 
 				new HashSet<Integer>(), 
 				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
+				step,							// not used here
 				numMapTasks, 
 				numReduceTasks, true, true);
 		job.setMapperClass(RDFSSubPropInheritMapper.class);
@@ -106,6 +107,7 @@ public class RDFSReasoner extends Configured implements Tool {
 				"RDFS subproperty domain and range reasoning", 
 				new HashSet<Integer>(),
 				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
+				step,							// not used here
 				numMapTasks,
 				numReduceTasks, true, true);
 		job.setMapperClass(RDFSSubPropDomRangeMapper.class);
@@ -135,6 +137,7 @@ public class RDFSReasoner extends Configured implements Tool {
 				"RDFS subclass reasoning", 
 				filters,
 				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
+				step,							// not used here
 				numMapTasks,
 				numReduceTasks, true, true);
 		job.setMapperClass(RDFSSubclasMapper.class);
@@ -167,6 +170,7 @@ public class RDFSReasoner extends Configured implements Tool {
 					"RDFS special properties reasoning", 
 					filters,
 					new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
+					step,							// not used here
 					numMapTasks,
 					numReduceTasks, true, true);
 			job.setMapperClass(RDFSSpecialPropsMapper.class);

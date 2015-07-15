@@ -31,12 +31,13 @@ public class ReasonedJustificationsMapper extends Mapper<Long, Row, Text, IntWri
 //		ResultSet results = session.execute(statement);
 		
 		Integer inferredsteps;
+		Integer transitivelevel;
 	//	for (Row rows : row){
 			if (rows.getInt(CassandraDB.COLUMN_RULE) != 0) {
 				
 				String conKey;
 				//*****
-				conKey = rows.getLong(CassandraDB.COLUMN_SUB)	//²»Ê¹ÓÃByteBufferUtil£¿
+				conKey = rows.getLong(CassandraDB.COLUMN_SUB)	//ï¿½ï¿½Ê¹ï¿½ï¿½ByteBufferUtilï¿½ï¿½
 						+ "-" + rows.getLong(CassandraDB.COLUMN_PRE)
 						+ "-" + rows.getLong(CassandraDB.COLUMN_OBJ)
 						+ "-" + rows.getBool(CassandraDB.COLUMN_IS_LITERAL)
@@ -44,10 +45,11 @@ public class ReasonedJustificationsMapper extends Mapper<Long, Row, Text, IntWri
 						+ "-" + rows.getInt(CassandraDB.COLUMN_RULE)
 						+ "-" + rows.getLong(CassandraDB.COLUMN_V1)
 						+ "-" + rows.getLong(CassandraDB.COLUMN_V2)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_V3);
-				inferredsteps = rows.getInt(CassandraDB.COLUMN_INFERRED_STEPS);
+						+ "-" + rows.getLong(CassandraDB.COLUMN_V3)
+						+ "-" + rows.getInt(CassandraDB.COLUMN_INFERRED_STEPS);			// Modified by WuGang, 2015-07-15
+				transitivelevel = rows.getInt(CassandraDB.COLUMN_TRANSITIVE_LEVELS);	// Added by WuGang, 2015-07-15
 				
-				context.write(new Text(conKey), new IntWritable(inferredsteps));
+				context.write(new Text(conKey), new IntWritable(transitivelevel));
 			}
 		//}
 		
@@ -70,7 +72,8 @@ public class ReasonedJustificationsMapper extends Mapper<Long, Row, Text, IntWri
                 CassandraDB.COLUMN_V1 + " bigint, " +
                 CassandraDB.COLUMN_V2 + " bigint, " +
                 CassandraDB. COLUMN_V3 + " bigint, " +
-				CassandraDB.COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
+				CassandraDB.COLUMN_INFERRED_STEPS + " int, " +		// from this line, fields are non-primary key
+				CassandraDB.COLUMN_TRANSITIVE_LEVELS + " int, " +
                 "   PRIMARY KEY ((" + CassandraDB.COLUMN_SUB + ", " + CassandraDB.COLUMN_PRE + ", " + CassandraDB.COLUMN_OBJ +  ", " + CassandraDB.COLUMN_IS_LITERAL + "), " +
                 CassandraDB.COLUMN_TRIPLE_TYPE + ", " + CassandraDB.COLUMN_RULE + ", " + CassandraDB.COLUMN_V1 + ", " + CassandraDB.COLUMN_V2 + ", " +  CassandraDB.COLUMN_V3 +  
                 " ) ) ";

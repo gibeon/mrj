@@ -205,6 +205,7 @@ public class OWLReasoner extends Configured implements Tool {
 				"OWL reasoner: infer properties inherited statements (not recursive), step " + step, 
 				new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
 				new HashSet<Integer>(),		// not supported
+				step,							// not used here
 				numMapTasks,
 				numReduceTasks, true, true);		
 		job.getConfiguration().setInt("reasoner.step", step);
@@ -262,13 +263,30 @@ public class OWLReasoner extends Configured implements Tool {
 				levels.add(new Integer(level-2));
 			
 			//Configure input. Take only the directories that are two levels below
-			Job job = MapReduceReasonerJobConfig.createNewJob(
-					OWLReasoner.class,
-					"OWL reasoner: transitivity rule. Level " + level, 
-					new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
-					levels,
-					numMapTasks,
-					numReduceTasks, true, true);		
+			Job job = null;
+			
+			// for the first two level, we use the whole data in the database
+			if (level <= 2)	
+				job = MapReduceReasonerJobConfig.createNewJob(
+						OWLReasoner.class,
+						"OWL reasoner: transitivity rule. Level " + level, 
+						new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
+						new HashSet<Integer>(),
+						0,
+						numMapTasks,
+						numReduceTasks, true, true);		
+			// for the level more than two, we only consider the last two level derived data in the current step
+			if (level > 2)
+				job = MapReduceReasonerJobConfig.createNewJob(
+						OWLReasoner.class,
+						"OWL reasoner: transitivity rule. Level " + level, 
+						new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
+						levels,
+						step,
+						numMapTasks,
+						numReduceTasks, true, true);	
+			
+			
 			job.getConfiguration().setInt("reasoning.baseLevel", step);
 			job.getConfiguration().setInt("reasoning.transitivityLevel", level);
 		    job.getConfiguration().setInt("maptasks", Math.max(numMapTasks / 10, 1));
@@ -315,6 +333,7 @@ public class OWLReasoner extends Configured implements Tool {
 						"OWL reasoner: build the synonyms table from same as triples - step " + derivationStep++, 
 						filters,		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
 						new HashSet<Integer>(), 		// Added by WuGang, 2015-07-12
+						step,							// not used here
 						numMapTasks,
 						numReduceTasks, true, true);		
 			    
@@ -353,6 +372,7 @@ public class OWLReasoner extends Configured implements Tool {
 						"OWL reasoner: sampling more common resources", 
 						new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
 						new HashSet<Integer>(),		// Added by WuGang, 2015-07-12
+						step,							// not used here
 						numMapTasks,
 						numReduceTasks, true, false);		// input from cassandra, but output to hdfs
 				job.getConfiguration().setInt("reasoner.samplingPercentage", sampling); //Sampling at 10%
@@ -408,6 +428,7 @@ public class OWLReasoner extends Configured implements Tool {
 						"OWL reasoner: replace triples using the sameAs synonyms: reconstruct triples", 
 						new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
 						new HashSet<Integer>(),		// Added by WuGang, 2015-07-12
+						step,							// not used here
 						numMapTasks,
 						numReduceTasks, false, true);		// input from hdfs, but output to cassandra
 
@@ -459,6 +480,7 @@ public class OWLReasoner extends Configured implements Tool {
 				"OWL reasoner: infer equivalence from subclass and subprop. step " + step, 
 				filters,
 				new HashSet<Integer>(),		// Added by WuGang, 20150712
+				step,							// not used here
 				numMapTasks,
 				numReduceTasks, true, true);		
 		job.getConfiguration().setInt("maptasks", Math.max(job.getConfiguration().getInt("maptasks", 0) / 10, 1));
@@ -494,6 +516,7 @@ public class OWLReasoner extends Configured implements Tool {
 					"OWL reasoner: some and all values rule. step " + step, 
 					new HashSet<Integer>(),
 					new HashSet<Integer>(),
+					step,							// not used here
 					numMapTasks,
 					numReduceTasks, true, true);		
 			job.getConfiguration().setInt("reasoner.step", step);
@@ -553,6 +576,7 @@ public class OWLReasoner extends Configured implements Tool {
 				"OWL reasoner: hasValue rule. step " + step, 
 				new HashSet<Integer>(),
 				new HashSet<Integer>(),
+				step,							// not used here
 				numMapTasks,
 				numReduceTasks, true, true);		
 		

@@ -101,7 +101,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 	
 	public void sampleCommonResources(String[] args) throws Exception {
-//		System.out.println("ÔÚsampleCommonResourcesÈÎÎñÖÐ¡£");
+//		System.out.println("ï¿½ï¿½sampleCommonResourcesï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½");
 		Job job = createNewJob("Sample common resources");
 		
 	    //Input
@@ -127,7 +127,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 	
 	public void assignIdsToNodes(String[] args) throws Exception {
-//		System.out.println("ÔÚassignIdsToNodesÈÎÎñÖÐ¡£");
+//		System.out.println("ï¿½ï¿½assignIdsToNodesï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½");
 		
 		Job job = createNewJob("Deconstruct statements");
 		job.getConfiguration().setInt("mapred.job.reuse.jvm.num.tasks", -1);
@@ -156,7 +156,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 
 	private void rewriteTriples(String[] args) throws Exception {
-//		System.out.println("ÔÚrewriteTriplesÈÎÎñÖÐ¡£");
+//		System.out.println("ï¿½ï¿½rewriteTriplesï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½");
 		
 		Job job = createNewJob("Reconstruct statements");
 
@@ -189,7 +189,7 @@ public class FilesImportTriples extends Configured implements Tool {
         // is it useful below line?
         //job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
         String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
-        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? ";
+        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? , " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=?";
 
 	    
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);

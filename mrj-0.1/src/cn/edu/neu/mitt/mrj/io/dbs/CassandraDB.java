@@ -93,7 +93,7 @@ public class CassandraDB {
     public static final String COLUMN_ID = "id";	// mrjks.resources.id
     public static final String COLUMN_LABEL = "label";	// mrjks.resources.label
     public static final String COLUMN_JUSTIFICATION = "justification";	//mrjks.results.justification
-    public static final String COLUMN_STEP = "step";	// mrjks.results.step
+    public static final String COLUMN_TRANSITIVE_LEVELS = "transitivelevel";	// mrjks.results.step
     
     public static final String DEFAULT_HOST = cn.edu.neu.mitt.mrj.utils.Cassandraconf.host;
     public static final String DEFAULT_PORT = "9160";	// in version 2.1.2, cql3 port is 9042
@@ -197,7 +197,8 @@ public class CassandraDB {
                 COLUMN_V2 + " bigint, " +
                 COLUMN_V3 + " bigint, " +
 //                COLUMN_TRIPLE_TYPE + " int, " +
-                COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
+                COLUMN_INFERRED_STEPS + " int, " +		// from this line, the fields are non-primary key
+                COLUMN_TRANSITIVE_LEVELS + " int, " +
                 "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +  ", " + COLUMN_IS_LITERAL + "), " +
                 COLUMN_TRIPLE_TYPE + ", " + COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +  
                 //", " + COLUMN_TRIPLE_TYPE +
@@ -501,6 +502,7 @@ public class CassandraDB {
     	// For column inferred, init it as false i.e. zero
 //      variables.add(ByteBuffer.wrap(new byte[]{zero}));
     	variables.add(ByteBufferUtil.bytes(source.getStep()));		// It corresponds to COLUMN_INFERRED_STEPS where steps = 0 means an original triple 
+    	variables.add(ByteBufferUtil.bytes(source.getTransitiveLevel()));		// It corresponds to COLUMN_TRANSITIVE_LEVEL, only useful in owl's transitive  
         context.write(keys, variables);
 	}
 	
@@ -787,7 +789,8 @@ public class CassandraDB {
                 COLUMN_V2 + " bigint, " +
                 COLUMN_V3 + " bigint, " +
 //                COLUMN_TRIPLE_TYPE + " int, " +
-                COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
+                COLUMN_INFERRED_STEPS + " int, " +		// from this line is non-primary key
+                COLUMN_TRANSITIVE_LEVELS + " int, " +	
                 "   PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ +  ", " + COLUMN_IS_LITERAL + "), " +
                 COLUMN_TRIPLE_TYPE + ", " + COLUMN_RULE + ", " + COLUMN_V1 + ", " + COLUMN_V2 + ", " +  COLUMN_V3 +  
                 //", " + COLUMN_TRIPLE_TYPE +
