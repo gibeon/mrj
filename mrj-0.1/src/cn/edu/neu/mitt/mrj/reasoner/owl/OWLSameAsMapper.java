@@ -29,7 +29,7 @@ public class OWLSameAsMapper extends Mapper<Long, Row, LongWritable, BytesWritab
 		/* Source triple: s owl:sameAs o */
 		long olKey = 0;
 		long olValue = 0;
-		if (value.getSubject() > value.getObject()) {	//keyÀïÃæÊÇ´óÖµ£¬valueÀïÊÇÐ¡Öµ
+		if (value.getSubject() > value.getObject()) {	//keyï¿½ï¿½ï¿½ï¿½ï¿½Ç´ï¿½Öµï¿½ï¿½valueï¿½ï¿½ï¿½ï¿½Ð¡Öµ
 			olKey = value.getSubject();
 			olValue = value.getObject();
 		} else {
@@ -37,18 +37,21 @@ public class OWLSameAsMapper extends Mapper<Long, Row, LongWritable, BytesWritab
 			olValue = value.getSubject();
 		}
 		
-		// ÓÃ×îÐ¡ÄÇ¸öÖµ±êÊ¶Ã¿Ò»¸ö×é
+		// ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½Ç¸ï¿½Öµï¿½ï¿½Ê¶Ã¿Ò»ï¿½ï¿½ï¿½ï¿½
 		
 		oKey.set(olKey);
 		bValue[0] = 0;
 		NumberUtils.encodeLong(bValue, 1, olValue);		
 		oValue.set(bValue, 0, bValue.length);
-		context.write(oKey, oValue);	//×îÖÕkeyÊÇ´óÖµ£¬valueÊÇÐ¡Öµ£¬ÓÃÕâ¸ö¿ÉÒÔµÃÖªÃ¿Ò»¸öresource£¬ÊôÓÚÄÄ¸ö×é
+		context.write(oKey, oValue);	//ï¿½ï¿½ï¿½ï¿½keyï¿½Ç´ï¿½Öµï¿½ï¿½valueï¿½ï¿½Ð¡Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôµï¿½ÖªÃ¿Ò»ï¿½ï¿½resourceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½
 		
 		oKey.set(olValue);
 		bValue[0] = 1;
 		NumberUtils.encodeLong(bValue, 1, olKey);		
 		oValue.set(bValue, 0, bValue.length);
-		context.write(oKey, oValue);	//×îÖÕkeyÊÇÐ¡Öµ£¬valueÊÇ´óÖµ£¬ÓÃÕâ¸ö¿ÉÒÔµÃÖªÃ¿Ò»¸ö×éÖÐ°üº¬ÄÄÐ©resource
+		context.write(oKey, oValue);	//ï¿½ï¿½ï¿½ï¿½keyï¿½ï¿½Ð¡Öµï¿½ï¿½valueï¿½Ç´ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôµï¿½ÖªÃ¿Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ð°ï¿½ï¿½ï¿½ï¿½ï¿½Ð©resource
+	}
+	public void setup(Context context) throws IOException{
+
 	}
 }

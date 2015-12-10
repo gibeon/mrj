@@ -36,13 +36,13 @@ public class ReasonedJustifications extends Configured implements Tool{
 	        		" WHERE TOKEN(" + 
 	        		CassandraDB.COLUMN_SUB + ", " + 
 	        		CassandraDB.COLUMN_PRE + ", " + 
-	        		CassandraDB.COLUMN_OBJ + ", " + 
-	        		CassandraDB.COLUMN_IS_LITERAL +
+	        		CassandraDB.COLUMN_OBJ +  
+	        		//CassandraDB.COLUMN_IS_LITERAL +
 	        		") > ? AND TOKEN(" + 
 	        		CassandraDB.COLUMN_SUB + ", " + 
 	        		CassandraDB.COLUMN_PRE + ", " + 
-					CassandraDB.COLUMN_OBJ + ", " + 
-	        		CassandraDB.COLUMN_IS_LITERAL + 
+					CassandraDB.COLUMN_OBJ +  
+	        		//CassandraDB.COLUMN_IS_LITERAL + 
 	        		") <= ? ALLOW FILTERING");
 	        CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), CassandraDB.CQL_PAGE_ROW_SIZE);
 	        //Modifide by LiYang  

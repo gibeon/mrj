@@ -19,7 +19,7 @@ public class ImportTriplesSampleMapper extends Mapper<Text, Text, Text, NullWrit
 	private Map<String,Long> preloadedURIs = TriplesUtils.getInstance().getPreloadedURIs();
 	
     protected void map(Text key, Text value, Context context) {
-    	System.out.println("ÔÚImportTriplesSampleMapperÖÐ");
+    	//System.out.println("ï¿½ï¿½ImportTriplesSampleMapperï¿½ï¿½");
 		try {
 			String[] uris = TriplesUtils.parseTriple(value.toString(), key.toString());
 			for(String uri : uris) {

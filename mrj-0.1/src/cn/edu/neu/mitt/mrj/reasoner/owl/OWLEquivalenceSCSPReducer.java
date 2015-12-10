@@ -90,7 +90,7 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				}
 			}
 			
-			if (!found) {	// ¾­¹ýÍÆÀíµÃ³öµÄ½á¹û
+			if (!found) {	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã³ï¿½ï¿½Ä½ï¿½ï¿½
 				triple.setObject(resource);
 				triple.setSubject(key.get());
 				triple.setPredicate(TriplesUtils.RDFS_SUBCLASS);
@@ -109,7 +109,7 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				}
 				
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step11");
 			}
 		}
 		
@@ -146,12 +146,12 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				}
 				
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step11");
 			}
 		}
 
 		//Subproperties
-		// Modified by WuGang,ÕâÀïÃ²ËÆÓ¦¸ÃÊÇsuperProperties
+		// Modified by WuGang,ï¿½ï¿½ï¿½ï¿½Ã²ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½superProperties
 //		itr2 = equivalenceProperties.iterator();
 		itr2 = superProperties.iterator();
 		while (itr2.hasNext()) {
@@ -180,12 +180,12 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				triple.setRobject(triple.getObject());
 				
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step11");
 			}
 		}
 		
 		//Subclasses
-		// Modified by WuGang,ÕâÀïÃ²ËÆÓ¦¸ÃÊÇsuperClasses
+		// Modified by WuGang,ï¿½ï¿½ï¿½ï¿½Ã²ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½superClasses
 //		itr2 = equivalenceClasses.iterator();
 		itr2 = superClasses.iterator();
 		while (itr2.hasNext()) {
@@ -215,7 +215,7 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				triple.setRobject(triple.getObject());
 				
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step11");
 			}
 		}
 	}

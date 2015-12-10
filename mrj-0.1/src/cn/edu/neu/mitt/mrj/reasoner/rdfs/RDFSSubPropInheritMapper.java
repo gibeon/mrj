@@ -75,7 +75,19 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 	protected void setup(Context context) throws IOException {
 		hasSchemaChanged = false;
 		previousExecutionStep = context.getConfiguration().getInt("lastExecution.step", -1);
-
+//		try {	//有存在的 直接跳出了~~ 	必须放前面---db对象已经声明过的...
+//			CassandraDB d = new CassandraDB();
+//			d.Index();
+//		} catch (Exception e) {
+//			System.out.println("Error in creating Index");
+//		}
+		try {
+			CassandraDB d = new CassandraDB();
+			d.createIndexOnTripleType();
+			d.createIndexOnRule();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
 		if (subpropSchemaTriples == null) {
 			subpropSchemaTriples = new HashSet<Long>();
 			try {
@@ -85,7 +97,9 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 				hasSchemaChanged = db.loadSetIntoMemory(subpropSchemaTriples, filters, previousExecutionStep);
 //				hasSchemaChanged = FilesTriplesReader.loadSetIntoMemory(subpropSchemaTriples, context, 
 //				"FILTER_ONLY_SUBPROP_SCHEMA", previousExecutionStep);
-				
+//				System.out.println("AAA");
+//				db.createIndexOnInferredSteps();
+//				System.out.println("create on inferredsteps");
 				db.CassandraDBClose();
 			} catch (TException e) {
 				e.printStackTrace();
@@ -93,23 +107,8 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 		} else {
 			log.debug("Subprop schema triples already loaded in memory");
 		}
-		
-		try {
-			CassandraDB db = new CassandraDB();
-			db.Index();
-			db.CassandraDBClose();
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
+
+				
 	}
 	
-	protected void cleanup(Context context) throws IOException, InterruptedException{
-		try {
-			CassandraDB db = new CassandraDB();
-			db.UnIndex();
-			db.CassandraDBClose();
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-	}
 }

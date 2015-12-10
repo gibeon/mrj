@@ -6,6 +6,8 @@ import java.util.Iterator;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 
+import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+
 public class OWLSampleResourcesReducer extends Reducer<LongWritable, LongWritable, LongWritable, LongWritable> {
 	
 	//private static Logger log = LoggerFactory.getLogger(OWLSampleResourcesReducer.class);
@@ -34,6 +36,8 @@ public class OWLSampleResourcesReducer extends Reducer<LongWritable, LongWritabl
 
 	@Override
 	public void setup(Context context) { 
+		CassandraDB.setConfigLocation();
+
 		threshold = context.getConfiguration().getInt("reasoner.threshold", 0);
 	}
 }

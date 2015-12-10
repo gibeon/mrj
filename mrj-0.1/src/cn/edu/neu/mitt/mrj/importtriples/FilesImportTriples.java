@@ -184,13 +184,12 @@ public class FilesImportTriples extends Configured implements Tool {
         job.setOutputValueClass(List.class);
         job.setOutputFormatClass(CqlOutputFormat.class);
 
-        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
+        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
         
         // is it useful below line?
         //job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
-        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
-        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? , " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=?";
-
+        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES +
+        		" SET " + CassandraDB.COLUMN_IS_LITERAL + "=? ,"+ CassandraDB.COLUMN_TRIPLE_TYPE + "=?" +  ","+ CassandraDB.COLUMN_INFERRED_STEPS + "=0";		
 	    
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
         ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
@@ -223,10 +222,11 @@ public class FilesImportTriples extends Configured implements Tool {
 		long time = System.currentTimeMillis();
 		int res = ToolRunner.run(new Configuration(), new FilesImportTriples(), args);
 //		log.info("Import time: " + (System.currentTimeMillis() - time));
-		
-		//Modified by LiYang	2015/4/10
+//		
+//		//Modified by LiYang	2015/4/10
 //		CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
 //		db.init();
+//		// Modified
 //		db.createIndexOnTripleType();
 //		//db.createIndexOnRule();
 //

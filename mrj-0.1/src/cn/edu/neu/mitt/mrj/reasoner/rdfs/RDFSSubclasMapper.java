@@ -41,22 +41,16 @@ public class RDFSSubclasMapper extends Mapper<Long, Row, BytesWritable, LongWrit
 	}
 	
 	protected void setup(Context context) throws IOException, InterruptedException{
-		try {
-			CassandraDB db = new CassandraDB();
-			db.Index();
-			db.CassandraDBClose();
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
+		
 	}
-	protected void cleanup(Context context) throws IOException, InterruptedException{
-		try {
-			CassandraDB db = new CassandraDB();
-			db.UnIndex();
-			db.CassandraDBClose();
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-	}
+//	protected void cleanup(Context context) throws IOException, InterruptedException{
+//		try {
+//			CassandraDB db = new CassandraDB();
+//			db.UnIndex();
+//			db.CassandraDBClose();
+//		} catch (Exception e) {
+//			// TODO: handle exception
+//		}
+//	}
 	
 }

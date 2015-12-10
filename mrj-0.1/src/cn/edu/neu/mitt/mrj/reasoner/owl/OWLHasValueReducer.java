@@ -71,7 +71,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 									triple.setRobject(triple.getObject());				// w
 //									System.out.println("In OWLHasValueReducer for 14b output: "+triple);	// Added by Wugang
 									
-									CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+									CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step13");
 //									context.write(source, triple);
 								}
 							}
@@ -97,11 +97,11 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 							triple.setType(TriplesUtils.OWL_HORST_14a);
 							triple.setRsubject(triple.getObject());				// v
 //							triple.setRpredicate(TriplesUtils.OWL_HAS_VALUE);	// owl:hasValue
-							triple.setRpredicate(predicate);					// p	// Modified by WuGang, 2010-08-26,Õâ¸öÐÅÏ¢ÓÃÓÚÖØÐÂ»Ö¸´ÓÃ
+							triple.setRpredicate(predicate);					// p	// Modified by WuGang, 2010-08-26,ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â»Ö¸ï¿½ï¿½ï¿½
 							triple.setRobject(object);							// w
 //							System.out.println("In OWLHasValueReducer for 14a output: "+triple);	// Added by Wugang
 							
-							CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+							CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step13");
 //							context.write(source, triple);
 						}
 					}

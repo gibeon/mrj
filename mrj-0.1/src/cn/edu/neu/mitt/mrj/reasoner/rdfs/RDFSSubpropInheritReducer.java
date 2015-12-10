@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat;
+import org.apache.cassandra.thrift.Cassandra.AsyncProcessor.system_add_column_family;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -92,8 +94,10 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 				oTriple.setPredicate(itr3.next());				
 				for (LongWritable pre : values) {
 					oTriple.setRpredicate(pre.get());
-					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);
-//					context.write(source, oTriple);
+					System.out.println("before wj");
+					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context, "step1");
+					System.out.println("after wj");
+					//					context.write(source, oTriple);
 				}
 			}
 
@@ -124,12 +128,14 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 //				oTriple.setObject(itr4.next());				
 //				context.write(source, oTriple);
 //			}
-			// Modified by WuGang, 2010-08-26
+			// Modified by WuGang, 2010-08-26	
 			while (itr4.hasNext()) {
 				oTriple.setObject(itr4.next());
 				for(LongWritable obj:values){
 					oTriple.setRobject(obj.get());
-					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);					
+					System.out.println("before wj");
+					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context, "step1");	
+					System.out.println("before wj");
 //					context.write(source, oTriple);
 				}
 			}
@@ -145,6 +151,9 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 	@Override
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+//		System.out.println("reduce setup");
+//        CqlBulkOutputFormat.setColumnFamilySchema(context.getConfiguration(), CassandraDB.KEYSPACE + ".step1", CassandraDB.getStepsSchema(1));
+//		System.out.println(CqlBulkOutputFormat.getColumnFamilySchema(context.getConfiguration(), CassandraDB.COLUMNFAMILY_ALLTRIPLES + "step1"));
 
 		if (subpropSchemaTriples == null) {
 			CassandraDB db;
@@ -154,7 +163,6 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
 				subpropSchemaTriples = db.loadMapIntoMemory(filters);
 //				subpropSchemaTriples = FilesTriplesReader.loadMapIntoMemory("FILTER_ONLY_SUBPROP_SCHEMA", context);
-				
 				db.CassandraDBClose();
 			} catch (TTransportException e) {
 				e.printStackTrace();
@@ -177,6 +185,8 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));
 
 		oTriple2.setPredicate(TriplesUtils.RDF_TYPE);
-		oTriple2.setObjectLiteral(false);
+		oTriple2.setObjectLiteral(false);		
+
 	}
+	
 }

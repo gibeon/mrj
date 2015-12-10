@@ -9,16 +9,19 @@
  */
 package cn.edu.neu.mitt.mrj.reasoner;
 
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.cassandra.hadoop.ConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat;
 import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
 import org.apache.cassandra.hadoop.cql3.CqlInputFormat;
 import org.apache.cassandra.hadoop.cql3.CqlOutputFormat;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
@@ -37,44 +40,52 @@ public class MapReduceReasonerJobConfig {
         // Should not use 9160 port in cassandra 2.1.2 because new cql3 port is 9042, please refer to conf/cassandra.yaml
         //ConfigHelper.setInputRpcPort(job.getConfiguration(), "9160");	 
         ConfigHelper.setInputPartitioner(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.partitioner);
-        ConfigHelper.setInputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
+        ConfigHelper.setInputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
         if (typeFilters.size() == 0){
         	
         	if (transitiveLevelFilters.size() == 0)
 		        CqlConfigHelper.setInputCql(job.getConfiguration(), 
-		        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+		        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES + 
 		        		" WHERE TOKEN(" + 
 		        		CassandraDB.COLUMN_SUB + ", " + 
-		        		CassandraDB.COLUMN_PRE + ", " + 
-		        		CassandraDB.COLUMN_OBJ + ", " + 
-		        		CassandraDB.COLUMN_IS_LITERAL +
+		        		CassandraDB.COLUMN_PRE + ", " +
+		        		CassandraDB.COLUMN_OBJ +
 		        		") > ? AND TOKEN(" + 
 		        		CassandraDB.COLUMN_SUB + ", " + 
-		        		CassandraDB.COLUMN_PRE + ", " + 
-						CassandraDB.COLUMN_OBJ + ", " + 
-		        		CassandraDB.COLUMN_IS_LITERAL + 
+		        		CassandraDB.COLUMN_PRE + ", " +
+		        		CassandraDB.COLUMN_OBJ +
 		        		") <= ? ALLOW FILTERING");
+//		        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+//		        		" WHERE TOKEN(" + 
+//		        		CassandraDB.COLUMN_SUB + ", " + 
+//		        		CassandraDB.COLUMN_PRE + ", " + 
+//		        		CassandraDB.COLUMN_OBJ + ", " + 
+//		        		CassandraDB.COLUMN_IS_LITERAL +
+//		        		") > ? AND TOKEN(" + 
+//		        		CassandraDB.COLUMN_SUB + ", " + 
+//		        		CassandraDB.COLUMN_PRE + ", " + 
+//						CassandraDB.COLUMN_OBJ + ", " + 
+//		        		CassandraDB.COLUMN_IS_LITERAL + 
+//		        		") <= ? ALLOW FILTERING");
         	else{
             	Integer max = java.util.Collections.max(transitiveLevelFilters);
             	Integer min = java.util.Collections.min(transitiveLevelFilters);
 
             	
     	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
-    	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+    	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES + 
     	        		" WHERE TOKEN(" + 
-    	        		CassandraDB.COLUMN_SUB + ", " + 
-    	        		CassandraDB.COLUMN_PRE + ", " + 
-    	        		CassandraDB.COLUMN_OBJ + ", " + 
-    	        		CassandraDB.COLUMN_IS_LITERAL +
-    	        		") > ? AND TOKEN(" + 
-    	        		CassandraDB.COLUMN_SUB + ", " + 
-    	        		CassandraDB.COLUMN_PRE + ", " + 
-    					CassandraDB.COLUMN_OBJ + ", " + 
-    	        		CassandraDB.COLUMN_IS_LITERAL + 
-    	        		") <= ? AND " +
-    	        		CassandraDB.COLUMN_INFERRED_STEPS + " = " + certainStep + " AND " + 
-    	        		CassandraDB.COLUMN_TRANSITIVE_LEVELS + " >= " + min + " AND " +
-    	        		CassandraDB.COLUMN_TRANSITIVE_LEVELS + " <= " + max +
+		        		CassandraDB.COLUMN_SUB + ", " + 
+		        		CassandraDB.COLUMN_PRE + ", " +
+		        		CassandraDB.COLUMN_OBJ +
+		        		") > ? AND TOKEN(" + 
+		        		CassandraDB.COLUMN_SUB + ", " + 
+		        		CassandraDB.COLUMN_PRE + ", " +
+		        		CassandraDB.COLUMN_OBJ +
+    	        		") <= ? " +
+//    	        		CassandraDB.COLUMN_INFERRED_STEPS + " = " + certainStep + " AND " + 
+//    	        		CassandraDB.COLUMN_TRANSITIVE_LEVELS + " >= " + min + " AND " +
+//    	        		CassandraDB.COLUMN_TRANSITIVE_LEVELS + " <= " + max +
     	        		" ALLOW FILTERING");
         	}
         		
@@ -87,20 +98,19 @@ public class MapReduceReasonerJobConfig {
         	}
         	
 	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
-	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES + 
 	        		" WHERE TOKEN(" + 
 	        		CassandraDB.COLUMN_SUB + ", " + 
-	        		CassandraDB.COLUMN_PRE + ", " + 
-	        		CassandraDB.COLUMN_OBJ + ", " + 
-	        		CassandraDB.COLUMN_IS_LITERAL +
+	        		CassandraDB.COLUMN_PRE + ", " +
+	        		CassandraDB.COLUMN_OBJ +
 	        		") > ? AND TOKEN(" + 
 	        		CassandraDB.COLUMN_SUB + ", " + 
-	        		CassandraDB.COLUMN_PRE + ", " + 
-					CassandraDB.COLUMN_OBJ + ", " + 
-	        		CassandraDB.COLUMN_IS_LITERAL + 
-	        		") <= ? AND " +
-	        		CassandraDB.COLUMN_TRIPLE_TYPE + " = " + typeFilters.toArray()[0] +
-	        		" ALLOW FILTERING");
+	        		CassandraDB.COLUMN_PRE + ", " +
+	        		CassandraDB.COLUMN_OBJ +
+	        		") <= ? ");
+//	        		") <= ? AND " +
+//	        		CassandraDB.COLUMN_TRIPLE_TYPE + " = " + typeFilters.toArray()[0] +
+//	        		" ALLOW FILTERING");
         }else{
         	if (transitiveLevelFilters.size() != 0){	// stepFilter is only for handling transitive property
         		System.err.println("This is not supported!!!");
@@ -119,21 +129,20 @@ public class MapReduceReasonerJobConfig {
 
         	
 	        CqlConfigHelper.setInputCql(job.getConfiguration(), 
-	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS + 
+	        		"SELECT * FROM " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES + 
 	        		" WHERE TOKEN(" + 
 	        		CassandraDB.COLUMN_SUB + ", " + 
-	        		CassandraDB.COLUMN_PRE + ", " + 
-	        		CassandraDB.COLUMN_OBJ + ", " + 
-	        		CassandraDB.COLUMN_IS_LITERAL +
+	        		CassandraDB.COLUMN_PRE + ", " +
+	        		CassandraDB.COLUMN_OBJ +
 	        		") > ? AND TOKEN(" + 
 	        		CassandraDB.COLUMN_SUB + ", " + 
-	        		CassandraDB.COLUMN_PRE + ", " + 
-					CassandraDB.COLUMN_OBJ + ", " + 
-	        		CassandraDB.COLUMN_IS_LITERAL + 
-	        		") <= ? AND " +
-	        		CassandraDB.COLUMN_TRIPLE_TYPE + " >= " + min + " AND " +
-	        		CassandraDB.COLUMN_TRIPLE_TYPE + " <= " + max +
-	        		" ALLOW FILTERING");
+	        		CassandraDB.COLUMN_PRE + ", " +
+	        		CassandraDB.COLUMN_OBJ +
+	        		") <= ? ");
+//	        		+ "AND " +
+//	        		CassandraDB.COLUMN_TRIPLE_TYPE + " >= " + min + " AND " +
+//	        		CassandraDB.COLUMN_TRIPLE_TYPE + " <= " + max +
+//	        		" ALLOW FILTERING");
         	
 //        	String strFilter = filters.toString();
 //        	String strInFilterClause = strFilter.substring(1, strFilter.length()-1);	// remove "[" and "]" characters of Set.toString()
@@ -167,32 +176,62 @@ public class MapReduceReasonerJobConfig {
 	
 	
 	// Output to CassandraDB.COLUMNFAMILY_JUSTIFICATIONS
-	private static void configureCassandraOutput(Job job) {
+	private static void configureCassandraOutput(Job job, Integer step) {
 		//Set the output
         job.setOutputKeyClass(Map.class);
         job.setOutputValueClass(List.class);
-        job.setOutputFormatClass(CqlOutputFormat.class);
+        
+        job.setOutputFormatClass(CqlBulkOutputFormat.class);
+        CqlBulkOutputFormat.setColumnFamilySchema(job.getConfiguration(), CassandraDB.KEYSPACE + ".step1", CassandraDB.getStepsSchema(1));
+        System.out.println("Schema : " + CassandraDB.getStepsSchema(1));
+//        job.setOutputFormatClass(ColumnFamilyOutputFormat.class);
+        
         ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
         ConfigHelper.setOutputPartitioner(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.partitioner);
 
-        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
-        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
-        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=?, " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=?";
-        CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
+        //ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, "alltriples");
+        ConfigHelper.setOutputKeyspace(job.getConfiguration(), CassandraDB.KEYSPACE);
+     
+        /*
+         * addMultiNamedOutput
+         * 
+         */
+        JobConf jobconf = new JobConf(job.getConfiguration());
+//        MultipleOutputs.addNamedOutput(jobconf, "step" + step, ColumnFamilyOutputFormat.class, ByteBuffer.class, List.class);
+//        MultipleOutputs.addNamedOutput(jobconf, CassandraDB.COLUMNFAMILY_ALLTRIPLES, ColumnFamilyOutputFormat.class, ByteBuffer.class, List.class);
+       
+//        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), "step" + step);       
+//        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), KEYSPACE, OUTPUT_COLUMN_FAMILY);
+//        job.getConfiguration().set(CONF_COLUMN_NAME, "sum");
+        
+//        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+        
+   //     String query = "UPDATE " + CassandraDB.KEYSPACE + ".step" + step + 
+   //     		" SET " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=? " ;
+//        		"UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES + 
+//        		" SET " + CassandraDB.COLUMN_IS_LITERAL + "=?" + CassandraDB.COLUMN_TRIPLE_TYPE + "=?";
+//        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES +
+//        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=?, " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=?";
+   //     CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
+//        String querysString = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES + 
+//        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + " =? ";// + CassandraDB.COLUMN_IS_LITERAL + "=?, " + CassandraDB.COLUMN_TRIPLE_TYPE + " =? ";
+        //CqlConfigHelper.setOutputCql(job.getConfiguration(), querysString);
+
+        
 	}
 
 	
-	// In each derivation, we may create a set of jobs
+	// In each derivation, we may create a set of jobs	
 	// certainStep is optional, if it is specified then we can use it to filter transitiveLevel with non-equal operator 
 	//    (see cql specification)  
 	public static Job createNewJob(Class<?> classJar, String jobName, 
 			Set<Integer> typeFilters, Set<Integer> transitiveLevelFilters, int certainStep, int numMapTasks, int numReduceTasks,
-			boolean bConfigCassandraInput, boolean bConfigCassandraOutput)
+			boolean bConfigCassandraInput, boolean bConfigCassandraOutput, Integer step)
 		throws IOException {
 		Configuration conf = new Configuration();
 		conf.setInt("maptasks", numMapTasks);
 		conf.set("input.filter", typeFilters.toString());
-		
+	
 		Job job = new Job(conf);
 		job.setJobName(jobName);
 		job.setJarByClass(classJar);
@@ -203,7 +242,8 @@ public class MapReduceReasonerJobConfig {
 	    if (bConfigCassandraInput)
 	    	configureCassandraInput(job, typeFilters, transitiveLevelFilters, certainStep);
 	    if (bConfigCassandraOutput)
-	    	configureCassandraOutput(job);
+	    	configureCassandraOutput(job, step);
+
 	    
 	    // Added by WuGang 2010-05-25 
 	    System.out.println("Create a job - " + jobName);
@@ -212,6 +252,44 @@ public class MapReduceReasonerJobConfig {
 
 	    return job;
 	}
-
-
+/*
+	public static void CreateTables(String jobname){
+		Builder builder = Cluster.builder();
+		builder.addContactPoint(CassandraDB.DEFAULT_HOST);
+		SocketOptions socketoptions= new SocketOptions().setKeepAlive(true).setReadTimeoutMillis(10 * 10000).setConnectTimeoutMillis(5 * 10000);
+		Cluster clu = builder.build();
+		Session session = clu.connect();
+		
+		String query = "";
+		if(jobname == "RDFS special properties reasoning"){
+			query = "CREATE TABLE IF NOT EXISTS " + "mrjks" + "."  + jobname + 
+					" ( " + 
+	                "sub" + " bigint, " + 
+	                "pre" + " bigint, " +
+	                "obj" + " bigint, " +	
+	        		"rule int, " +
+	                "v1" + " bigint, " +
+	                "v2" + " bigint, " +
+	                "v3" + " bigint, " +
+	                "transitiveleves int" + 
+	                ", primary key((sub, pre, obj, rule) ,v1, v2, v3 ))";
+		}
+		else {
+			query = "CREATE TABLE IF NOT EXISTS " + "mrjks" + "."  + jobname + 
+					" ( " + 
+	                "sub" + " bigint, " + 
+	                "pre" + " bigint, " +
+	                "obj" + " bigint, " +	
+	        		"rule int, " +
+	                "v1" + " bigint, " +
+	                "v2" + " bigint, " +
+	                "v3" + " bigint, " +
+	                ", primary key((id, rule) ,v1, v2, v3))";
+		}
+    		
+        session.execute(query);
+        System.out.println(query);
+    	System.out.println("--------Create Table----------");
+	}
+	*/
 }

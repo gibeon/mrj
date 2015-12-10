@@ -95,7 +95,7 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 					source.setTransitiveLevel((int)(Math.abs(entry.getValue()) + Math.abs(entry2.getValue()) - baseLevel));
 					
 //					context.write(source, triple);
-					CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+					CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step6");
 					
 //					System.out.println("In OWLTransitivityReducer: " + triple);
 				}
@@ -106,7 +106,6 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 	@Override
 	public void setup(Context context) {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
-
 		baseLevel = context.getConfiguration().getInt("reasoning.baseLevel", 1) - 1;
 		level = context.getConfiguration().getInt("reasoning.transitivityLevel", -1);
 		// Modified by WuGang 2015-01-28

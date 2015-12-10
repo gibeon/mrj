@@ -85,7 +85,7 @@ public class OWLEquivalenceSCSPMapper extends Mapper<Long, Row, LongWritable, By
 	
 	@Override
 	public void setup(Context context) throws IOException {
-		
+
 		CassandraDB db;
 		try {
 			db = new CassandraDB();

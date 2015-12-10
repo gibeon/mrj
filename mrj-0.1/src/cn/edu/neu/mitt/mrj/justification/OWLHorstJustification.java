@@ -158,8 +158,8 @@ public class OWLHorstJustification extends Configured implements Tool {
 		parseArgs(args);
 		
 		// Added by WuGang 2015-06-08
-		if (bClearOriginals)
-			CassandraDB.removeOriginalTriples();
+//		if (bClearOriginals)
+//			CassandraDB.removeOriginalTriples();
 
 		
 		long total = 0;			// Total justifications

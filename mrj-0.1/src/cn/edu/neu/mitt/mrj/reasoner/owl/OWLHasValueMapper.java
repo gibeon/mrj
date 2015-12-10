@@ -43,7 +43,7 @@ public class OWLHasValueMapper extends Mapper<Long, Row, LongWritable, BytesWrit
 		} //TODO: check whether also the schema is modified
 
 		oKey.set(value.getSubject());
-		if (value.getPredicate() == TriplesUtils.RDF_TYPE &&	// ´¦Àí14b£¬ÆäÖÐvalueÐÎÈç(u rdf:type v)£¬Ä¿µÄÊÇÔÚreduceÖÐÉú³É(u p w)£¬ÎÒÃÇ»¹ÒªÌí¼Ó14b(v owl:hasValue w)
+		if (value.getPredicate() == TriplesUtils.RDF_TYPE &&	// ï¿½ï¿½ï¿½ï¿½14bï¿½ï¿½ï¿½ï¿½ï¿½ï¿½valueï¿½ï¿½ï¿½ï¿½(u rdf:type v)ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½reduceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(u p w)ï¿½ï¿½ï¿½ï¿½ï¿½Ç»ï¿½Òªï¿½ï¿½ï¿½14b(v owl:hasValue w)
 				hasValue.contains(value.getObject()) &&
 				onProperty.contains(value.getObject())) {
 //			System.out.println("In OWLHasValueMapper for 14b: " + value);	// Added by Wugang
@@ -52,7 +52,7 @@ public class OWLHasValueMapper extends Mapper<Long, Row, LongWritable, BytesWrit
 			oValue.set(values, 0, 9);
 			
 			context.write(oKey, oValue);
-		} else if (value.getPredicate() != TriplesUtils.RDF_TYPE	// ´¦Àí14a£¬ÆäÖÐvalueÐÎÈç(u p w)£¬Ä¿µÄÊÇÔÚreduceÖÐÉú³É(u rdf:type v)£¬ÎÒÃÇ»¹ÒªÌí¼Ó14a(v owl:hasValue w)
+		} else if (value.getPredicate() != TriplesUtils.RDF_TYPE	// ï¿½ï¿½ï¿½ï¿½14aï¿½ï¿½ï¿½ï¿½ï¿½ï¿½valueï¿½ï¿½ï¿½ï¿½(u p w)ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½reduceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(u rdf:type v)ï¿½ï¿½ï¿½ï¿½ï¿½Ç»ï¿½Òªï¿½ï¿½ï¿½14a(v owl:hasValue w)
 				&& hasValueInverted.contains(value.getObject())
 				&& onPropertyInverted.contains(value.getPredicate())) {
 //			System.out.println("In OWLHasValueMapper for 14a: " + value);	// Added by Wugang
@@ -71,7 +71,7 @@ public class OWLHasValueMapper extends Mapper<Long, Row, LongWritable, BytesWrit
 
 	public void setup(Context context) throws IOException {
 		previousStep = context.getConfiguration().getInt("reasoner.previousStep", -1);
-	
+
 		try{
 			CassandraDB db = new CassandraDB();
 		

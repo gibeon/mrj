@@ -2,9 +2,16 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.cassandra.hadoop.ColumnFamilyOutputFormat;
+import org.apache.cassandra.hadoop.ConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat;
+import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlOutputFormat;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -18,13 +25,14 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.reasoner.MapReduceReasonerJobConfig;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
+//import org.apache.hadoop.mapred.lib.MultipleOutputs;
 
 public class RDFSReasoner extends Configured implements Tool {
 	
@@ -33,7 +41,7 @@ public class RDFSReasoner extends Configured implements Tool {
 	private int numReduceTasks = -1;
 	public static int step = 0;
 	private int lastExecutionPropInheritance = -1;
-	private int lastExecutionDomRange = -1;
+	private int lastExecutionDomRange = -1; 
 	
 
 	private void parseArgs(String[] args) {
@@ -83,6 +91,7 @@ public class RDFSReasoner extends Configured implements Tool {
 		Job job = null;
 		long derivation = 0;
 		
+		
 		// RDFS subproperty inheritance reasoning
 //		job = createNewJob("RDFS subproperty inheritance reasoning", "FILTER_ONLY_HIDDEN");
 		job = MapReduceReasonerJobConfig.createNewJob(
@@ -92,7 +101,7 @@ public class RDFSReasoner extends Configured implements Tool {
 				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
 				step,							// not used here
 				numMapTasks, 
-				numReduceTasks, true, true);
+				numReduceTasks, true, true, 1);
 
 		job.setMapperClass(RDFSSubPropInheritMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);
@@ -102,10 +111,38 @@ public class RDFSReasoner extends Configured implements Tool {
 		job.getConfiguration().setInt("lastExecution.step", lastExecutionPropInheritance);
 		lastExecutionPropInheritance = step;
 //TODO:		configureOutputJob(job, args[0], "dir-rdfs-derivation/dir-subprop-inherit");
+			
+        Configuration conf = job.getConfiguration();
+        String outputCF1 = "stepNO";
+        String outputCF2 = "alltriples";
+//        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+        conf.set(outputCF1, "step1");
+        conf.set(outputCF2, "alltriples");
+		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+		ConfigHelper.setOutputColumnFamily(conf, "step1");	
+		MrjMultioutput.addNamedOutput(job, conf.get(outputCF1), CqlBulkOutputFormat.class, ByteBuffer.class, List.class);
+		MrjMultioutput.addNamedOutput(job, conf.get(outputCF2), CqlBulkOutputFormat.class, ByteBuffer.class, List.class);
+		CqlConfigHelper.setOutputCql(conf, "select * from step1");
+		
+		
+//		CqlBulkOutputFormat.setColumnFamilySchema(conf, "step1", CassandraDB.getStepsSchema(1));
+//		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF2, CassandraDB.getStepsSchema(1));
+//		CqlBulkOutputFormat.setColumnFamilyInsertStatement(conf, "step1", CassandraDB.getAlltripleStatement());
+//		CqlBulkOutputFormat.setColumnFamilyInsertStatement(conf, outputCF2, CassandraDB.getAlltripleStatement());
+
+		
+		System.out.println("cqlconfig");
+		CqlConfigHelper.setOutputCql(conf, "select * from step1");
+		System.out.println("set out put cql");
+		
+//		System.out.println(CqlBulkOutputFormat.getColumnFamilyInsertStatement(conf, outputCF1));
+//		System.out.println(CqlBulkOutputFormat.getColumnFamilySchema(conf, outputCF1));
+
 		job.waitForCompletion(true);
 		long propInheritanceDerivation = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
 		derivation += propInheritanceDerivation;
 
+	
 		
 		// RDFS subproperty domain and range reasoning
 //		job = createNewJob("RDFS subproperty domain and range reasoning", "FILTER_ONLY_HIDDEN");
@@ -116,13 +153,41 @@ public class RDFSReasoner extends Configured implements Tool {
 				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
 				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true);
+				numReduceTasks, true, true, 2);
 		job.setMapperClass(RDFSSubPropDomRangeMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);	// Modified by WuGang, 2010-08-26
 		job.setMapOutputValueClass(LongWritable.class);
 		//job.setPartitionerClass(MyHashPartitioner.class);	// Is this ok? seems not necessary
 		job.setReducerClass(RDFSSubpropDomRangeReducer.class);
 		job.getConfiguration().setInt("reasoner.step", ++step);
+		System.out.println("set map reduce class finished");
+		
+		conf = job.getConfiguration();
+		conf.set(outputCF1, "step2");
+		conf.set(outputCF2, "alltriples");
+		
+		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+		ConfigHelper.setOutputColumnFamily(conf, "alltriples");	
+		
+		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF1, CassandraDB.getAlltripleSchema());
+		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF2, CassandraDB.getStepsSchema(2));
+		MrjMultioutput.addNamedOutput(job, conf.get(outputCF1), CqlOutputFormat.class, ByteBuffer.class, List.class);
+		MrjMultioutput.addNamedOutput(job, conf.get(outputCF2), CqlOutputFormat.class, ByteBuffer.class, List.class);
+		CqlConfigHelper.setOutputCql(conf, "select * from step1");
+
+//		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+//		ConfigHelper.setOutputColumnFamily(conf, "step1");	
+//		MultipleOutputs.addNamedOutput(job, CassandraDB.COLUMNFAMILY_ALLTRIPLES, ColumnFamilyOutputFormat.class, Map.class, List.class);
+//		MultipleOutputs.addNamedOutput(job, CassandraDB.COLUMNFAMILY_ALLTRIPLES, ColumnFamilyOutputFormat.class, Map.class, List.class);
+//		MultipleOutputs.addNamedOutput(job, conf.get(outputCF1), ColumnFamilyOutputFormat.class, ByteBuffer.class, List.class);
+//		MultipleOutputs.addNamedOutput(job, conf.get(outputCF2), ColumnFamilyOutputFormat.class, ByteBuffer.class, List.class);
+
+	
+		
+		//MultipleOutputs.addNamedOutput((JobConf) job.getConfiguration() , CassandraDB.COLUMNFAMILY_ALLTRIPLES, ColumnFamilyOutputFormat.class, Map.class, List.class);
+		//Job jobs = new Job(getConf());
+
+		//MultipleOutputs.addMultiNamedOutput(conf, namedOutput, outputFormatClass, keyClass, valueClass);
 		job.getConfiguration().setInt("lastExecution.step", lastExecutionDomRange);
 		lastExecutionDomRange = step;
 //TODO:		configureOutputJob(job, args[0], "dir-rdfs-derivation/dir-subprop-domain-range");
@@ -133,7 +198,7 @@ public class RDFSReasoner extends Configured implements Tool {
 		// RDFS cleaning up subprop duplicates
 		// We remove it for simplicity. That means we will not support stop and restart from breakpoints 
 		
-		
+
 
 	    //RDFS subclass reasoning
 //		job = createNewJob("RDFS subclass reasoning", "FILTER_ONLY_TYPE_SUBCLASS");
@@ -146,12 +211,23 @@ public class RDFSReasoner extends Configured implements Tool {
 				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
 				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true);
+				numReduceTasks, true, true, 3);
 		job.setMapperClass(RDFSSubclasMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
 		job.setReducerClass(RDFSSubclasReducer.class);
 		job.getConfiguration().setInt("reasoner.step", ++step);
+		
+		conf = job.getConfiguration();
+		conf.set(outputCF1, "step3");
+		conf.set(outputCF2, "alltriples");
+		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+		ConfigHelper.setOutputColumnFamily(conf, "alltriples");	
+		MrjMultioutput.addNamedOutput(job, conf.get(outputCF1), CqlOutputFormat.class, ByteBuffer.class, List.class);
+		MrjMultioutput.addNamedOutput(job, conf.get(outputCF2), CqlOutputFormat.class, ByteBuffer.class, List.class);
+		CqlConfigHelper.setOutputCql(conf, "select * from step1");
+		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF1, CassandraDB.getAlltripleSchema());
+		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF2, CassandraDB.getStepsSchema(3));
 //		configureOutputJob(job, args[0], "dir-rdfs-output/dir-subclass-" + step);
 		job.waitForCompletion(true);
 		derivation += job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
@@ -179,12 +255,24 @@ public class RDFSReasoner extends Configured implements Tool {
 					new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
 					step,							// not used here
 					numMapTasks,
-					numReduceTasks, true, true);
+					numReduceTasks, true, true, 4);
 			job.setMapperClass(RDFSSpecialPropsMapper.class);
 			job.setMapOutputKeyClass(BytesWritable.class);
 			job.setMapOutputValueClass(LongWritable.class);
 			job.setReducerClass(RDFSSpecialPropsReducer.class);
 			job.getConfiguration().setInt("reasoner.step", ++step);
+
+			conf = job.getConfiguration();
+			conf.set(outputCF1, "step4");
+			conf.set(outputCF2, "alltriples");
+			ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+			ConfigHelper.setOutputColumnFamily(conf, "alltriples");	
+			MrjMultioutput.addNamedOutput(job, conf.get(outputCF1), CqlOutputFormat.class, ByteBuffer.class, List.class);
+			MrjMultioutput.addNamedOutput(job, conf.get(outputCF2), CqlOutputFormat.class, ByteBuffer.class, List.class);
+			CqlConfigHelper.setOutputCql(conf, "select * from step1");
+			
+			CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF1, CassandraDB.getAlltripleSchema());
+			CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF2, CassandraDB.getStepsSchema(4));
 
 //			configureOutputJob(job, args[0], "dir-rdfs-output/dir-special-props-" + step);
 		    job.waitForCompletion(true);

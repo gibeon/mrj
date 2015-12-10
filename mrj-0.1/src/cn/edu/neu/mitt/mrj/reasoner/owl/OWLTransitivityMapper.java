@@ -78,6 +78,7 @@ public class OWLTransitivityMapper extends Mapper<Long, Row, BytesWritable, Byte
 
 	@Override
 	public void setup(Context context) {
+
 		level = context.getConfiguration().getInt("reasoning.transitivityLevel", 0);
 		baseLevel = context.getConfiguration().getInt("reasoning.baseLevel", 0) - 1;
 		minLevel = Math.max(1, (int)Math.pow(2,level - 2)) + baseLevel;

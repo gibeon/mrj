@@ -44,12 +44,12 @@ public class OWLSameAsReducer extends Reducer<LongWritable, BytesWritable, Map<S
 			BytesWritable value = itr.next();
 			long lValue = NumberUtils.decodeLong(value.getBytes(), 1);
 //			System.out.println("processing " + lValue + " with the first byte is: " + value.getBytes()[0]);
-			if (value.getBytes()[0] != 0) {	// 1£ºÃ¿Ò»¸övalue¶¼ÊÇÒ»¸ö×éÔ±
+			if (value.getBytes()[0] != 0) {	// 1ï¿½ï¿½Ã¿Ò»ï¿½ï¿½valueï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ô±
 					//Store in-memory
 					storage.add(lValue);
 //					System.out.println("Storage size is: " + storage.size());
 				//}
-			} else {	// 0£ººÏ²¢Ò»¸öresourceËùÊôµÄ¸÷ÖÖ×é£¨valueÖµ£©
+			} else {	// 0ï¿½ï¿½ï¿½Ï²ï¿½Ò»ï¿½ï¿½resourceï¿½ï¿½ï¿½ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½ï¿½é£¨valueÖµï¿½ï¿½
 //				System.out.println("Prepare to repalce: lValue is " + lValue + " and oValue.getSubject() is " + oValue.getSubject());
 				if (lValue < oValue.getSubject()) {
 //					System.out.println("Hahahahah, I'm here!");
@@ -65,7 +65,7 @@ public class OWLSameAsReducer extends Reducer<LongWritable, BytesWritable, Map<S
 			long lValue = itr2.next();
 			if (!duplicates.contains(lValue)) {
 				oValue.setObject(lValue);
-				CassandraDB.writeJustificationToMapReduceContext(oValue, oKey, context);
+				CassandraDB.writeJustificationToMapReduceContext(oValue, oKey, context, "step8");
 				duplicates.add(lValue);
 			}		
 		}

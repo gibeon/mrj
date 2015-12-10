@@ -1,9 +1,14 @@
 package cn.edu.neu.mitt.mrj.reasoner.owl;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.cassandra.hadoop.ConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlOutputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -17,10 +22,12 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.io.files.readers.FilesTriplesReader;
 import cn.edu.neu.mitt.mrj.partitioners.MyHashPartitioner;
 import cn.edu.neu.mitt.mrj.reasoner.MapReduceReasonerJobConfig;
@@ -102,7 +109,7 @@ public class OWLReasoner extends Configured implements Tool {
 		try {
 			OWLReasoner owlreasoner = new OWLReasoner();
 			owlreasoner.db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
-			owlreasoner.db.init();
+//			owlreasoner.db.init();
 			
 			ToolRunner.run(new Configuration(), owlreasoner, args);
 		} catch (Exception e) {
@@ -207,7 +214,7 @@ public class OWLReasoner extends Configured implements Tool {
 				new HashSet<Integer>(),		// not supported
 				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true);		
+				numReduceTasks, true, true, 5);		
 		job.getConfiguration().setInt("reasoner.step", step);
 		job.getConfiguration().setInt("reasoner.previosTransitiveDerivation", previousTransitiveDerivation);
 		job.getConfiguration().setInt("reasoner.previousDerivation", previousInferPropertiesDerivation);
@@ -217,6 +224,16 @@ public class OWLReasoner extends Configured implements Tool {
 		job.setMapOutputKeyClass(BytesWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
 		job.setReducerClass(OWLNotRecursiveReducer.class);
+		
+        Configuration conf = job.getConfiguration();
+        String outputCF1 = "stepNO";
+        String outputCF2 = "alltriples";
+//        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+        conf.set(outputCF1, "step1");
+        conf.set(outputCF2, "alltriples");
+		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+		ConfigHelper.setOutputColumnFamily(conf, "step5");	
+		CqlConfigHelper.setOutputCql(conf, "select * from step1");
 		
 		job.waitForCompletion(true);
 		
@@ -274,7 +291,7 @@ public class OWLReasoner extends Configured implements Tool {
 						new HashSet<Integer>(),
 						0,
 						numMapTasks,
-						numReduceTasks, true, true);		
+						numReduceTasks, true, true, 6);		
 			// for the level more than two, we only consider the last two level derived data in the current step
 			if (level > 2)
 				job = MapReduceReasonerJobConfig.createNewJob(
@@ -284,7 +301,7 @@ public class OWLReasoner extends Configured implements Tool {
 						levels,
 						step,
 						numMapTasks,
-						numReduceTasks, true, true);	
+						numReduceTasks, true, true ,7);	
 			
 			
 			job.getConfiguration().setInt("reasoning.baseLevel", step);
@@ -295,6 +312,16 @@ public class OWLReasoner extends Configured implements Tool {
 			job.setMapOutputKeyClass(BytesWritable.class);
 			job.setMapOutputValueClass(BytesWritable.class);
 			job.setReducerClass(OWLTransitivityReducer.class);
+			
+	        Configuration conf = job.getConfiguration();
+	        String outputCF1 = "stepNO";
+	        String outputCF2 = "alltriples";
+//	        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+	        conf.set(outputCF1, "step1");
+	        conf.set(outputCF2, "alltriples");
+			ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+			ConfigHelper.setOutputColumnFamily(conf, "step6");	
+			CqlConfigHelper.setOutputCql(conf, "select * from step1");
 			
 			job.waitForCompletion(true);
 			long stepNotFilteredDerivation = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter","REDUCE_OUTPUT_RECORDS").getValue();
@@ -335,12 +362,22 @@ public class OWLReasoner extends Configured implements Tool {
 						new HashSet<Integer>(), 		// Added by WuGang, 2015-07-12
 						step,							// not used here
 						numMapTasks,
-						numReduceTasks, true, true);		
+						numReduceTasks, true, true, 8);		
 			    
 				job.setMapperClass(OWLSameAsMapper.class);
 				job.setMapOutputKeyClass(LongWritable.class);
 				job.setMapOutputValueClass(BytesWritable.class);
 				job.setReducerClass(OWLSameAsReducer.class);
+		      
+				Configuration conf = job.getConfiguration();
+		        String outputCF1 = "stepNO";
+		        String outputCF2 = "alltriples";
+//		        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+		        conf.set(outputCF1, "step1");
+		        conf.set(outputCF2, "alltriples");
+				ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+				ConfigHelper.setOutputColumnFamily(conf, "step8");	
+				CqlConfigHelper.setOutputCql(conf, "select * from step1");
 				
 				job.waitForCompletion(true);
 				
@@ -374,10 +411,14 @@ public class OWLReasoner extends Configured implements Tool {
 						new HashSet<Integer>(),		// Added by WuGang, 2015-07-12
 						step,							// not used here
 						numMapTasks,
-						numReduceTasks, true, false);		// input from cassandra, but output to hdfs
+						numReduceTasks, true, false, 9);		// input from cassandra, but output to hdfs
 				job.getConfiguration().setInt("reasoner.samplingPercentage", sampling); //Sampling at 10%
 				job.getConfiguration().setInt("reasoner.threshold", resourceThreshold); //Threshold resources
 
+				/*
+				 * output to hdfs
+				 */
+				
 				job.setMapperClass(OWLSampleResourcesMapper.class);
 				job.setMapOutputKeyClass(LongWritable.class);
 				job.setMapOutputValueClass(LongWritable.class);
@@ -391,6 +432,16 @@ public class OWLReasoner extends Configured implements Tool {
 			    job.setOutputFormatClass(SequenceFileOutputFormat.class);
 			    SequenceFileOutputFormat.setOutputCompressionType(job, CompressionType.BLOCK);
 
+		        Configuration conf = job.getConfiguration();
+		        String outputCF1 = "stepNO";
+		        String outputCF2 = "alltriples";
+//		        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+		        conf.set(outputCF1, "step1");
+		        conf.set(outputCF2, "alltriples");
+				ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+				ConfigHelper.setOutputColumnFamily(conf, "step9");	
+				CqlConfigHelper.setOutputCql(conf, "select * from step1");
+			    
 			    job.waitForCompletion(true);
 				
 			    
@@ -430,7 +481,7 @@ public class OWLReasoner extends Configured implements Tool {
 						new HashSet<Integer>(),		// Added by WuGang, 2015-07-12
 						step,							// not used here
 						numMapTasks,
-						numReduceTasks, false, true);		// input from hdfs, but output to cassandra
+						numReduceTasks, false, true, 10);		// input from hdfs, but output to cassandra
 
 				SequenceFileInputFormat.addInputPath(job, tmpPath);
 				job.setInputFormatClass(SequenceFileInputFormat.class);
@@ -439,6 +490,17 @@ public class OWLReasoner extends Configured implements Tool {
 				job.setMapOutputKeyClass(BytesWritable.class);
 				job.setMapOutputValueClass(BytesWritable.class);
 				job.setReducerClass(OWLSameAsReconstructReducer.class);
+				
+		        conf = job.getConfiguration();
+		        outputCF1 = "stepNO";
+		        outputCF2 = "alltriples";
+//		        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+		        conf.set(outputCF1, "step1");
+		        conf.set(outputCF2, "alltriples");
+				ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+				ConfigHelper.setOutputColumnFamily(conf, "step10");	
+				CqlConfigHelper.setOutputCql(conf, "select * from step1");
+				
 				job.waitForCompletion(true);
 				
 				FileSystem fs = FileSystem.get(job.getConfiguration());
@@ -482,7 +544,7 @@ public class OWLReasoner extends Configured implements Tool {
 				new HashSet<Integer>(),		// Added by WuGang, 20150712
 				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true);		
+				numReduceTasks, true, true, 11);		
 		job.getConfiguration().setInt("maptasks", Math.max(job.getConfiguration().getInt("maptasks", 0) / 10, 1));
 		job.getConfiguration().setInt("reasoner.step", step);
 
@@ -490,6 +552,16 @@ public class OWLReasoner extends Configured implements Tool {
 		job.setMapOutputKeyClass(LongWritable.class);
 		job.setMapOutputValueClass(BytesWritable.class);
 		job.setReducerClass(OWLEquivalenceSCSPReducer.class);		
+       
+		Configuration conf = job.getConfiguration();
+        String outputCF1 = "stepNO";
+        String outputCF2 = "alltriples";
+//        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+        conf.set(outputCF1, "step1");
+        conf.set(outputCF2, "alltriples");
+		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+		ConfigHelper.setOutputColumnFamily(conf, "step11");	
+		CqlConfigHelper.setOutputCql(conf, "select * from step1");
 		
 		job.waitForCompletion(true);
 		return job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter","REDUCE_OUTPUT_RECORDS").getValue();
@@ -518,7 +590,7 @@ public class OWLReasoner extends Configured implements Tool {
 					new HashSet<Integer>(),
 					step,							// not used here
 					numMapTasks,
-					numReduceTasks, true, true);		
+					numReduceTasks, true, true, 12);		
 			job.getConfiguration().setInt("reasoner.step", step);
 			job.getConfiguration().setInt("reasoner.previousDerivation", previousSomeAllValuesDerivation);
 			previousSomeAllValuesDerivation = step;
@@ -527,6 +599,16 @@ public class OWLReasoner extends Configured implements Tool {
 			job.setMapOutputKeyClass(BytesWritable.class);
 			job.setMapOutputValueClass(BytesWritable.class);
 			job.setReducerClass(OWLAllSomeValuesReducer.class);
+	       
+			Configuration conf = job.getConfiguration();
+	        String outputCF1 = "stepNO";
+	        String outputCF2 = "alltriples";
+//	        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+	        conf.set(outputCF1, "step1");
+	        conf.set(outputCF2, "alltriples");
+			ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+			ConfigHelper.setOutputColumnFamily(conf, "step12");	
+			CqlConfigHelper.setOutputCql(conf, "select * from step1");
 			
 			job.waitForCompletion(true);
 			
@@ -543,6 +625,13 @@ public class OWLReasoner extends Configured implements Tool {
 				notFilteredDerivation -= previousSomeAllValuesCycleDerivation;
 			if (notFilteredDerivation > 0) {
 				previousSomeAllValuesCycleDerivation += notFilteredDerivation;
+				//Modified by LiYang 2015/9/21
+//				try {
+//					db.createIndexOnInferredSteps();
+//				} catch (TException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
 				stepDerivation = db.getRowCountAccordingInferredSteps(step - 1);
 				totalDerivation += stepDerivation;
 				derivedNewStatements = stepDerivation > 0;
@@ -578,7 +667,7 @@ public class OWLReasoner extends Configured implements Tool {
 				new HashSet<Integer>(),
 				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true);		
+				numReduceTasks, true, true, 13);		
 		
 		long schemaOnPropertySize = db.getRowCountAccordingTripleType(TriplesUtils.SCHEMA_TRIPLE_ON_PROPERTY);
 		if (schemaOnPropertySize == 0)
@@ -593,6 +682,16 @@ public class OWLReasoner extends Configured implements Tool {
 		job.setMapOutputValueClass(BytesWritable.class);
 		job.setReducerClass(OWLHasValueReducer.class);		
 
+        Configuration conf = job.getConfiguration();
+        String outputCF1 = "stepNO";
+        String outputCF2 = "alltriples";
+//        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+        conf.set(outputCF1, "step1");
+        conf.set(outputCF2, "alltriples");
+		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
+		ConfigHelper.setOutputColumnFamily(conf, "step13");	
+		CqlConfigHelper.setOutputCql(conf, "select * from step1");
+		
 		job.waitForCompletion(true);
 		
 		// Get inferred count
