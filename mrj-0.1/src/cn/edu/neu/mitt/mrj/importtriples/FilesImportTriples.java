@@ -225,11 +225,18 @@ public class FilesImportTriples extends Configured implements Tool {
 //		log.info("Import time: " + (System.currentTimeMillis() - time));
 		
 		//Modified by LiYang	2015/4/10
-		CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
-		db.init();
-		db.createIndexOnTripleType();
-		db.createIndexOnRule();
-		db.CassandraDBClose();
+//		CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
+//		db.init();
+//		db.createIndexOnTripleType();
+//		//db.createIndexOnRule();
+//
+//		/*
+//		 * Add by LiYang
+//		 * 2015.7.19
+//		 */
+//		//db.createIndexOnInferredSteps();
+//		//db.createIndexOnTransitiveLevel();
+//		db.CassandraDBClose();
 		
 		System.out.println("Import time: " + (System.currentTimeMillis() - time));
 		System.exit(res);

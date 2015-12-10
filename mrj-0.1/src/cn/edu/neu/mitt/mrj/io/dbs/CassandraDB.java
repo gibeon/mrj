@@ -49,6 +49,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.db.DBAppender;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
@@ -731,7 +732,7 @@ public class CassandraDB {
         	}
         }
 		
-		logger.debug("Time for CassandraDB's loadMapIntoMemory " + (System.currentTimeMillis() - startTime));
+		logger.info("Time for CassandraDB's loadMapIntoMemory " + (System.currentTimeMillis() - startTime));
 
 		return schemaTriples;
 	}	
@@ -757,8 +758,49 @@ public class CassandraDB {
 		String query = "CREATE INDEX ON " + KEYSPACE + "."  + COLUMNFAMILY_JUSTIFICATIONS + "(" + COLUMN_TRANSITIVE_LEVELS + ")";
 		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
 	}
+	
+	public void Index() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+	
+		this.createIndexOnInferredSteps();
+		this.createIndexOnRule();
+		this.createIndexOnTransitiveLevel();
+		this.createIndexOnTripleType();
+		
+	}
+	
+	/*
+	 * Add by L
+	 * Drop index
+	 */
+	public void DropTripleTypeIndex() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+		String query = "DROP INDEX mrjks.justifications_tripletype_idx";
+		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+	}
+	
+	public void DropRuleIndex() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+		String query = "DROP INDEX mrjks.justifications_rule_idx";
+		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+	}
+	
+	public void DropInferredStepsIndex() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+		String query = "DROP INDEX mrjks.justifications_inferredSteps_idx";
+		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+	}
+	
+	public void DropTransitiveLevelIndex() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+		String query = "DROP INDEX mrjks.justifications_transitiveLevel_idx";
+		client.execute_cql3_query(ByteBufferUtil.bytes(query), Compression.NONE, ConsistencyLevel.ONE);
+	}
+	
+	public void UnIndex() throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException{
+		
+		this.DropInferredStepsIndex();
+		this.DropRuleIndex();
+		this.DropTransitiveLevelIndex();
+		this.DropTripleTypeIndex();
+	}
+	
 	// Added by WuGang 2015-06-08
-
 	
 	public static ResultSet getRows(){
 		Builder builder = Cluster.builder();
@@ -916,10 +958,10 @@ public class CassandraDB {
 		try {
 			CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
 			db.init();
-			db.createIndexOnTripleType();
-			db.createIndexOnRule();
-			db.createIndexOnInferredSteps();
-			db.createIndexOnTransitiveLevel();
+//			db.createIndexOnTripleType();
+//			db.createIndexOnRule();
+//			db.createIndexOnInferredSteps();
+//			db.createIndexOnTransitiveLevel();
 //			db.insertResources(100, "Hello World!");
 			Set<Long> schemaTriples = new HashSet<Long>();
 			Set<Integer> filters = new HashSet<Integer>();

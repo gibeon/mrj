@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,26 @@ public class RDFSSubclasMapper extends Mapper<Long, Row, BytesWritable, LongWrit
 		oKey.set(bKey, 0, 9);
 		context.write(oKey, oValue);
 		
-//		System.out.println("准备出RDFSSubclasMapper-"+value);
+//		System.out.println("准锟斤拷锟斤拷RDFSSubclasMapper-"+value);
 	}
+	
+	protected void setup(Context context) throws IOException, InterruptedException{
+		try {
+			CassandraDB db = new CassandraDB();
+			db.Index();
+			db.CassandraDBClose();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+	}
+	protected void cleanup(Context context) throws IOException, InterruptedException{
+		try {
+			CassandraDB db = new CassandraDB();
+			db.UnIndex();
+			db.CassandraDBClose();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+	}
+	
 }

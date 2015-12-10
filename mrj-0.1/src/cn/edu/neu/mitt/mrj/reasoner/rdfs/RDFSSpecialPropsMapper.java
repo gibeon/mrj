@@ -91,6 +91,7 @@ public class RDFSSpecialPropsMapper extends Mapper<Long, Row, BytesWritable, Lon
 		
 		try{
 			CassandraDB db = new CassandraDB();
+			db.Index();
 			if (memberProperties == null) {
 				memberProperties = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
@@ -126,6 +127,16 @@ public class RDFSSpecialPropsMapper extends Mapper<Long, Row, BytesWritable, Lon
 			e.printStackTrace();
 		} catch (TException e) {
 			e.printStackTrace();
+		}
+	}
+	
+	protected void cleanup(Context context) throws IOException, InterruptedException{
+		try {
+			CassandraDB db = new CassandraDB();
+			db.UnIndex();
+			db.CassandraDBClose();
+		} catch (Exception e) {
+			// TODO: handle exception
 		}
 	}
 }

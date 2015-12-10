@@ -46,17 +46,23 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 	public void reduce(BytesWritable key, Iterable<LongWritable> values, Context context)
 				throws IOException, InterruptedException {
 		byte[] bKey = key.getBytes();	// Added by Wugang, 2010-08-26
-//			long uri = key.get();	//¶Ôdomain¶øÑÔ£¬ÊÇs£»¶Ôrange¶øÑÔ£¬ÊÇo
-		long uri = NumberUtils.decodeLong(bKey, 0);	//¶Ôdomain¶øÑÔÊÇs£»¶Ôrange¶øÑÔÊÇo
-		long uri_opposite = NumberUtils.decodeLong(bKey, 8);	//¶Ôdomain¶øÑÔÊÇo£»¶Ôrange¶øÑÔÊÇs
-
-			derivedProps.clear();	//´æ·Åx
+//			long uri = key.get();	//ï¿½ï¿½domainï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½rangeï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½o
+		long uri = NumberUtils.decodeLong(bKey, 0);	//ï¿½ï¿½domainï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sï¿½ï¿½ï¿½ï¿½rangeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½o
+		long uri_opposite = NumberUtils.decodeLong(bKey, 8);	//ï¿½ï¿½domainï¿½ï¿½ï¿½ï¿½ï¿½ï¿½oï¿½ï¿½ï¿½ï¿½rangeï¿½ï¿½ï¿½ï¿½ï¿½ï¿½s
+ 
+			derivedProps.clear();	//ï¿½ï¿½ï¿½x
+			
+			//Logger logger = LoggerFactory.getLogger(CassandraDB.class);
+			//long time = System.currentTimeMillis();
 			
 			//Get the predicates with a range or domain associated to this URIs
 			propURIs.clear();
 			Iterator<LongWritable> itr = values.iterator();
 			while (itr.hasNext())
-				propURIs.add(itr.next().get());	//´æ·Åp
+				propURIs.add(itr.next().get());	//ï¿½ï¿½ï¿½p
+			
+			
+			//logger.info("add " + (System.currentTimeMillis() - time));
 			
 			Iterator<Long> itrProp = propURIs.iterator();			
 			while (itrProp.hasNext()) {
@@ -78,6 +84,8 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 				}
 			}
 			
+			//logger.info("loop " + (System.currentTimeMillis() - time));
+			
 			//Derive the new statements
 //			Iterator<Long> itr2 = derivedProps.iterator();
 			Iterator<Entry<Long, Long>> itr2 = derivedProps.iterator();	// Modified by WuGang, 2010-08-26
@@ -90,7 +98,7 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 				oTriple.setObject(entry.getKey());		// Modified by WuGang, 2010-08-26	
 				// Added by WuGang, 2010-08-26
 				long propURI = entry.getValue();
-				oTriple.setRpredicate(propURI >> 1);	// Modified by WuGang 2010-12-03£¬ÔÚRDFSSubPropDomRangeMapperÖÐ×óÒÆÁË£¬ÏÖÔÚ±ØÐëÔÙÓÒÒÆ»ØÀ´
+				oTriple.setRpredicate(propURI >> 1);	// Modified by WuGang 2010-12-03ï¿½ï¿½ï¿½ï¿½RDFSSubPropDomRangeMapperï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë£ï¿½ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ»ï¿½ï¿½ï¿½
 				if ((propURI & 0x1) == 1) {	// Rule 3, for range
 					oTriple.setType(TriplesUtils.RDFS_3); 
 					oTriple.setRsubject(uri_opposite);
@@ -104,7 +112,10 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 				CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);					
 				//context.write(source, oTriple);
 			}
+			//logger.info("  " + (System.currentTimeMillis() - time));
+			
 			context.getCounter("RDFS derived triples", "subprop range and domain rule").increment(derivedProps.size());
+			//logger.info("finish " + (System.currentTimeMillis() - time));
 	}
 
 	@Override

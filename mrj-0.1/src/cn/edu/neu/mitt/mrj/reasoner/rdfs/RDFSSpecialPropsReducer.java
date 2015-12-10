@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -88,8 +89,8 @@ public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable
 			CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
 			//context.write(source, oTriple);
 			break;
-		case 4:	// Ã»ÓÐ¶ÔÓ¦µÄrdfs rule°¡
-		case 5:	// Ã»ÓÐ¶ÔÓ¦µÄrdfs rule°¡
+		case 4:	// Ã»ï¿½Ð¶ï¿½Ó¦ï¿½ï¿½rdfs ruleï¿½ï¿½
+		case 5:	// Ã»ï¿½Ð¶ï¿½Ó¦ï¿½ï¿½rdfs ruleï¿½ï¿½
 			oTriple.setSubject(NumberUtils.decodeLong(bKey, 1));
 			oTriple.setPredicate(TriplesUtils.RDFS_MEMBER);
 //			oTriple.setPredicate(NumberUtils.decodeLong(bKey, 9));
@@ -108,7 +109,8 @@ public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable
 
 	@Override
 	public void setup(Context context) {		
-		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.		
+
 
 		source.setDerivation(TripleSource.RDFS_DERIVED);
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));

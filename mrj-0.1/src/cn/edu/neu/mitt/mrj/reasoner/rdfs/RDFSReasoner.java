@@ -5,6 +5,10 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.SchemaDisagreementException;
+import org.apache.cassandra.thrift.TimedOutException;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.BytesWritable;
@@ -13,9 +17,12 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.reasoner.MapReduceReasonerJobConfig;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
@@ -69,14 +76,13 @@ public class RDFSReasoner extends Configured implements Tool {
 	
 	
 	// The derivation will be launched in run()
-	public long launchDerivation(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+	public long launchDerivation(String[] args) throws IOException, InterruptedException, ClassNotFoundException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
 
 		long time = System.currentTimeMillis();
-		
 		parseArgs(args);
 		Job job = null;
 		long derivation = 0;
-
+		
 		// RDFS subproperty inheritance reasoning
 //		job = createNewJob("RDFS subproperty inheritance reasoning", "FILTER_ONLY_HIDDEN");
 		job = MapReduceReasonerJobConfig.createNewJob(
@@ -87,6 +93,7 @@ public class RDFSReasoner extends Configured implements Tool {
 				step,							// not used here
 				numMapTasks, 
 				numReduceTasks, true, true);
+
 		job.setMapperClass(RDFSSubPropInheritMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);

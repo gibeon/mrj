@@ -7,6 +7,7 @@ import java.util.Set;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +92,24 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 			}
 		} else {
 			log.debug("Subprop schema triples already loaded in memory");
+		}
+		
+		try {
+			CassandraDB db = new CassandraDB();
+			db.Index();
+			db.CassandraDBClose();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+	}
+	
+	protected void cleanup(Context context) throws IOException, InterruptedException{
+		try {
+			CassandraDB db = new CassandraDB();
+			db.UnIndex();
+			db.CassandraDBClose();
+		} catch (Exception e) {
+			// TODO: handle exception
 		}
 	}
 }

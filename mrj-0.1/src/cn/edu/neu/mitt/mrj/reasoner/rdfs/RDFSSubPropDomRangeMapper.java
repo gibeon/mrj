@@ -11,6 +11,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -67,8 +68,8 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 			NumberUtils.encodeLong(bKey,8,value.getObject());	// Added by WuGang, 2010-08-26
 //			oKey.set(value.getSubject());
 			oKey.set(bKey, 0, 16);	// Modified by WuGang, 2010-08-26
-			oValue.set(value.getPredicate() << 1);	// ¿ÉÒÔÍ¨¹ýoValueµÄ×îºóÒ»Î»ÊÇ0À´È·¶¨£¬µ±Ç°´¦ÀíµÄÊÇdomain
-			context.write(oKey, oValue);	// ½«<<s,o>, p>·¢¹ýÈ¥, for rule 2
+			oValue.set(value.getPredicate() << 1);	// ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½oValueï¿½ï¿½ï¿½ï¿½ï¿½Ò»Î»ï¿½ï¿½0ï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½domain
+			context.write(oKey, oValue);	// ï¿½ï¿½<<s,o>, p>ï¿½ï¿½ï¿½ï¿½È¥, for rule 2
 		}
 
 		//Check if the predicate has a range
@@ -78,8 +79,8 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 			NumberUtils.encodeLong(bKey,8,value.getSubject());	// Added by WuGang, 2010-08-26
 //			oKey.set(value.getObject());
 			oKey.set(bKey, 0, 16);	// Modified by WuGang, 2010-08-26
-			oValue.set((value.getPredicate() << 1) | 1);	// ¿ÉÒÔÍ¨¹ýoValueµÄ×îºóÒ»Î»ÊÇ1À´È·¶¨£¬µ±Ç°´¦ÀíµÄÊÇrange
-			context.write(oKey, oValue);	// ½«<<o, s>, p>·¢¹ýÈ¥, for rule 3
+			oValue.set((value.getPredicate() << 1) | 1);	// ï¿½ï¿½ï¿½ï¿½Í¨ï¿½ï¿½oValueï¿½ï¿½ï¿½ï¿½ï¿½Ò»Î»ï¿½ï¿½1ï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½range
+			context.write(oKey, oValue);	// ï¿½ï¿½<<o, s>, p>ï¿½ï¿½ï¿½ï¿½È¥, for rule 3
 		}
 		
 	}
@@ -120,6 +121,14 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 			e.printStackTrace();
 		}
 		
+		try {
+			CassandraDB db = new CassandraDB();
+			db.Index();
+			db.CassandraDBClose();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
 		// Some debug codes
 //		System.out.println("In mapper setup, peviousExecutionStep= " + previousExecutionStep + " and hasSchemaChanged status: " + hasSchemaChanged);
 //		System.out.println("Input split: " + context.getInputSplit());
@@ -130,4 +139,16 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 //		}
 
 	}
+	
+
+	protected void cleanup(Context context) throws IOException, InterruptedException{
+		try {
+			CassandraDB db = new CassandraDB();
+			db.UnIndex();
+			db.CassandraDBClose();
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+	}
+	
 }
