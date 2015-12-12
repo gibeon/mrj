@@ -50,6 +50,18 @@ public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VA
 			ConfigHelper.setOutputColumnFamily(taskContext.getConfiguration(), columnFamilyNameName);
 			CqlConfigHelper.setOutputCql(taskContext.getConfiguration(), getCql(columnFamilyNameName));
 
+			CqlBulkOutputFormat.setColumnFamilySchema(
+					taskContext.getConfiguration(), 
+					columnFamilyNameName, 
+					getSchema(columnFamilyNameName));
+					
+			CqlBulkOutputFormat.setColumnFamilyInsertStatement(
+					taskContext.getConfiguration(), 
+					columnFamilyNameName, 
+					getInsertStatement(columnFamilyNameName));
+			
+
+			
 	      try {
 	    	  System.out.println(taskContext.getOutputFormatClass());
 	        writer = ((OutputFormat) ReflectionUtils.newInstance(
@@ -81,6 +93,22 @@ public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VA
 		}
 		System.out.println("get cql step");
 		return("UPDATE " + columnFamilyNameName + " SET transitivelevel =? ");
+	}
+	
+	String getSchema(String columnFamilyNameName){
+		System.out.println(columnFamilyNameName + " schema");
+		if (columnFamilyNameName == "alltriples") {
+			return CassandraDB.getAlltripleSchema();
+		}
+		return CassandraDB.getStepsSchema(columnFamilyNameName);
+	}
+	
+	String getInsertStatement(String columnFamilyNameName){
+		System.out.println(columnFamilyNameName + " insert statement");
+		if (columnFamilyNameName == "alltriples") {
+			return CassandraDB.getAlltripleStatement();
+		}
+		return CassandraDB.getStepsStatement(columnFamilyNameName);
 	}
 	
 }

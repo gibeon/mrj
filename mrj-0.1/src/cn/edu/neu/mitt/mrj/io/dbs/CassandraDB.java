@@ -22,11 +22,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.cassandra.exceptions.RequestExecutionException;
-import org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat;
-import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.Compression;
@@ -42,6 +39,7 @@ import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.hadoop.mapreduce.Reducer.Context;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -52,12 +50,12 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.logback.classic.db.DBAppender;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
@@ -66,13 +64,8 @@ import com.datastax.driver.core.SocketOptions;
 import com.datastax.driver.core.Statement;
 //modified  cassandra java 2.0.5
 import com.datastax.driver.core.TupleValue;
-import com.datastax.driver.core.Cluster.Builder;
-import com.datastax.driver.core.querybuilder.Delete.Where;
-import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 //modified 
-import com.datastax.driver.core.querybuilder.Select;
-import com.datastax.driver.core.utils.UUIDs;
 
 
 /**
@@ -196,26 +189,58 @@ public class CassandraDB {
                 COLUMN_INFERRED_STEPS + " int, " +
                 "PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + "," +  COLUMN_OBJ + 
                 ")) )";
-    	return (ALLTRIPLE_SCHEMA);
+    	return ALLTRIPLE_SCHEMA;
     }
     
     public static String getStepsSchema(Integer step){
-    	String 	query = "CREATE TABLE " + CassandraDB.KEYSPACE + ".step"  + step + 
+    	String 	STEPS_SCHEMA = "CREATE TABLE " + CassandraDB.KEYSPACE + ".step"  + step + 
 				" ( " + 
-                "sub" + " bigint, " + 
-                "pre" + " bigint, " +
-                "obj" + " bigint, " +	
-        		"rule int, " +
-                "v1" + " bigint, " +
-                "v2" + " bigint, " +
-                "v3" + " bigint, " +
-                "transitivelevel int" + 
-                ", primary key((sub, pre, obj, rule) ,v1, v2, v3 ))"; 
+				COLUMN_SUB + " bigint, " + 
+				COLUMN_PRE + " bigint, " +
+				COLUMN_OBJ + " bigint, " +	
+        		COLUMN_RULE + " int, " +
+                COLUMN_V1 + " bigint, " +
+                COLUMN_V2 + " bigint, " +
+                COLUMN_V3 + " bigint, " +
+                COLUMN_TRANSITIVE_LEVELS + " int, " + 
+                "PRIMARY KEY((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ + ", " + COLUMN_RULE + 
+                "), " + COLUMN_V1 + ", " + COLUMN_V2 + ", " + COLUMN_V3 +
+                "))"; 
+    	return STEPS_SCHEMA;
+    }
+    
+    public static String getStepsSchema(String cfName){
+    	String 	STEPS_SCHEMA = "CREATE TABLE " + CassandraDB.KEYSPACE + "." + cfName + 
+				" ( " + 
+				COLUMN_SUB + " bigint, " + 
+				COLUMN_PRE + " bigint, " +
+				COLUMN_OBJ + " bigint, " +	
+        		COLUMN_RULE + " int, " +
+                COLUMN_V1 + " bigint, " +
+                COLUMN_V2 + " bigint, " +
+                COLUMN_V3 + " bigint, " +
+                COLUMN_TRANSITIVE_LEVELS + " int, " + 
+                "PRIMARY KEY((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ + ", " + COLUMN_RULE + 
+                "), " + COLUMN_V1 + ", " + COLUMN_V2 + ", " + COLUMN_V3 +
+                "))"; 
+    	return STEPS_SCHEMA;
+    }
+    
+    public static String getStepsStatement(int step){
+    	String query = "INSERT INTO " + CassandraDB.KEYSPACE + ".step" + step +
+    			" (sub, pre, obj, rule, v1, v2, v3, transitivelevel) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+    	return query;
+    }
+    
+    public static String getStepsStatement(String cfName){
+    	String query = "INSERT INTO " + CassandraDB.KEYSPACE + "." + cfName +
+    			" (sub, pre, obj, rule, v1, v2, v3, transitivelevel) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
     	return query;
     }
     
     public static String getAlltripleStatement(){
-    	return ("INSERT INTO mrjks.alltriples () VALUES(?, ?)");
+    	return ("INSERT INTO " + CassandraDB.KEYSPACE + "."  + CassandraDB.COLUMNFAMILY_ALLTRIPLES +
+    			" (sub, pre, obj, isliteral, tripletype, inferredsteps) VALUES(?, ?, ?, ?, ?, ?)");
     }
     
     private static void setupTables(Cassandra.Iface client)  
@@ -560,6 +585,90 @@ public class CassandraDB {
 		return step;
 	}
 	
+	public static void writeJustificationToMapReduceMultipleOutputs(
+			Triple triple, 
+			TripleSource source, 
+			MultipleOutputs output,
+			String stepname) throws IOException, InterruptedException{
+		Map<String, ByteBuffer> keys = 	new LinkedHashMap<String, ByteBuffer>();
+		Map<String, ByteBuffer> allkeys = 	new LinkedHashMap<String, ByteBuffer>();
+    	List<ByteBuffer> allvariables =  new ArrayList<ByteBuffer>();
+		long time = System.currentTimeMillis();
+
+    	byte one = 1;
+    	byte zero = 0;
+	    // Prepare composite key (sub, pre, obj)
+        keys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(triple.getSubject()));
+        keys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(triple.getPredicate()));
+        keys.put(CassandraDB.COLUMN_OBJ, ByteBufferUtil.bytes(triple.getObject()));
+    	// the length of boolean type in cassandra is one byte!!!!!!!!
+        keys.put(CassandraDB.COLUMN_RULE, ByteBufferUtil.bytes((int)triple.getType()));	// int
+        keys.put(CassandraDB.COLUMN_V1, ByteBufferUtil.bytes(triple.getRsubject()));	// long
+        keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(triple.getRpredicate()));	// long
+        keys.put(CassandraDB.COLUMN_V3, ByteBufferUtil.bytes(triple.getRobject()));	// long
+        
+        allkeys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(triple.getSubject()));
+        allkeys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(triple.getPredicate()));
+        allkeys.put(CassandraDB.COLUMN_OBJ, ByteBufferUtil.bytes(triple.getObject()));
+        
+        allvariables.add(ByteBufferUtil.bytes(source.getStep()));
+        allvariables.add(triple.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));        
+        allvariables.add(ByteBufferUtil.bytes((int)triple.getType()));
+        
+        // Prepare variables
+    	List<ByteBuffer> variables =  new ArrayList<ByteBuffer>();
+//      variables.add(ByteBufferUtil.bytes(oValue.getSubject()));
+    	// the length of boolean type in cassandra is one byte!!!!!!!!
+    	// For column inferred, init it as false i.e. zero
+        //variables.add(ByteBuffer.wrap(new byte[]{zero}));
+
+    	variables.add(ByteBufferUtil.bytes(source.getTransitiveLevel()));
+    	
+
+    	
+    	// Keys are not used for 
+    	//   CqlBulkRecordWriter.write(Object key, List<ByteBuffer> values), 
+    	//   so it can be set to null.
+    	// Only values are used there where the value correspond to 
+    	//   the insert statement set in CqlBulkOutputFormat.setColumnFamilyInsertStatement()
+    	// All triples columnfamily:
+    	//     sub, pre, obj, isliteral, tripletype, inferredsteps
+    	// Steps columnfamily:
+    	//     sub, pre, obj, rule, v1, v2, v3, transitivelevel
+    	
+    	List<ByteBuffer> allTValues =  new ArrayList<ByteBuffer>();
+    	allTValues.add(ByteBufferUtil.bytes(triple.getSubject()));
+    	allTValues.add(ByteBufferUtil.bytes(triple.getPredicate()));
+    	allTValues.add(ByteBufferUtil.bytes(triple.getObject()));
+    	allTValues.add(triple.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));
+    	allTValues.add(ByteBufferUtil.bytes(
+    			TriplesUtils.getTripleType(
+    					source, triple.getSubject(), 
+    					triple.getPredicate(), 
+    					triple.getObject())));
+    	allTValues.add(ByteBufferUtil.bytes((int)source.getStep()));
+    	
+    	List<ByteBuffer> stepsValues =  new ArrayList<ByteBuffer>();
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getSubject()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getPredicate()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getObject()));
+    	stepsValues.add(ByteBufferUtil.bytes((int)triple.getType()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRsubject()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRpredicate()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRobject()));
+    	stepsValues.add(ByteBufferUtil.bytes((int)source.getTransitiveLevel()));
+    	
+    	time = System.currentTimeMillis();
+//    	_output.write(stepname, keys, variables);
+    	output.write(stepname, null, stepsValues);
+		System.out.println("wrote steps" + (System.currentTimeMillis() - time));
+		time = System.currentTimeMillis();
+    	output.write("alltriples", null, allTValues);
+//		System.out.println("wrote all " + (System.currentTimeMillis() - time));
+		System.out.println("write all " + (System.currentTimeMillis() - time));
+    	
+	}
+	
 	public static void writeJustificationToMapReduceContext(
 			Triple triple, 
 			TripleSource source, 
@@ -603,12 +712,45 @@ public class CassandraDB {
     	
 
     	
+    	// Keys are not used for 
+    	//   CqlBulkRecordWriter.write(Object key, List<ByteBuffer> values), 
+    	//   so it can be set to null.
+    	// Only values are used there where the value correspond to 
+    	//   the insert statement set in CqlBulkOutputFormat.setColumnFamilyInsertStatement()
+    	// All triples columnfamily:
+    	//     sub, pre, obj, isliteral, tripletype, inferredsteps
+    	// Steps columnfamily:
+    	//     sub, pre, obj, rule, v1, v2, v3, transitivelevel
+    	
+    	List<ByteBuffer> allTValues =  new ArrayList<ByteBuffer>();
+    	allTValues.add(ByteBufferUtil.bytes(triple.getSubject()));
+    	allTValues.add(ByteBufferUtil.bytes(triple.getPredicate()));
+    	allTValues.add(ByteBufferUtil.bytes(triple.getObject()));
+    	allTValues.add(triple.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));
+    	allTValues.add(ByteBufferUtil.bytes(
+    			TriplesUtils.getTripleType(
+    					source, triple.getSubject(), 
+    					triple.getPredicate(), 
+    					triple.getObject())));
+    	allTValues.add(ByteBufferUtil.bytes((int)source.getStep()));
+    	
+    	List<ByteBuffer> stepsValues =  new ArrayList<ByteBuffer>();
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getSubject()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getPredicate()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getObject()));
+    	stepsValues.add(ByteBufferUtil.bytes((int)triple.getType()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRsubject()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRpredicate()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRobject()));
+    	stepsValues.add(ByteBufferUtil.bytes((int)source.getTransitiveLevel()));
     	
     	time = System.currentTimeMillis();
-    	_output.write(stepname, keys, variables);
-		System.out.println("write step" + (System.currentTimeMillis() - time));
+//    	_output.write(stepname, keys, variables);
+    	_output.write(stepname, null, stepsValues);
+		System.out.println("wrote steps" + (System.currentTimeMillis() - time));
 		time = System.currentTimeMillis();
-    	_output.write("alltriples", allkeys, allvariables);
+    	_output.write("alltriples", null, allTValues);
+//		System.out.println("wrote all " + (System.currentTimeMillis() - time));
 		System.out.println("write all " + (System.currentTimeMillis() - time));
     	
 	}

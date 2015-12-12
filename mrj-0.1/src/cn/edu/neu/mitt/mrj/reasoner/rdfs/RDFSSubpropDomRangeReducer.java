@@ -4,30 +4,20 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.AbstractMap;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat;
-import org.apache.cassandra.thrift.Column;
-import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
-import org.apache.cassandra.thrift.Cassandra.AsyncProcessor.system_add_column_family;
-import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.thrift.TException;
@@ -38,11 +28,12 @@ import org.slf4j.LoggerFactory;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
 //public class RDFSSubpropDomRangeReducer extends Reducer<LongWritable, LongWritable, TripleSource, Triple> {
-public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<org.apache.cassandra.thrift.Mutation>> {
+public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>> {
 	
 	protected static Logger log = LoggerFactory.getLogger(RDFSSubpropDomRangeReducer.class);
 	
@@ -54,7 +45,7 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 	private TripleSource source = new TripleSource();
 	private Triple oTriple = new Triple();
 
-//	private MultipleOutputs _output;
+	private MultipleOutputs _output;
 	private ByteBuffer outputKey;
 	 
 	@Override
@@ -133,8 +124,8 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 				oTriple.setRobject(uri_opposite);
 			}
 
-			CassandraDB.writeJustificationToMapReduceContext(oTriple, source,
-					context, "step2");
+			CassandraDB.writeJustificationToMapReduceMultipleOutputs(oTriple, source,
+					_output, "step2");
 //			 logger.info("write " + (System.currentTimeMillis() - time));
 			time = System.currentTimeMillis();
 			System.out.println("finish " + (System.currentTimeMillis() - time));
@@ -162,7 +153,7 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 	@Override
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
-//        _output = new MultipleOutputs(context);
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 //		outputKey = ByteBufferUtil.bytes(context.getConfiguration().get(CassandraDB.COLUMNFAMILY_ALLTRIPLES));
 		try{
 			CassandraDB db = new CassandraDB();
@@ -196,4 +187,16 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));
 
 	}
+
+
+	@Override
+	protected void cleanup(
+			Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		// TODO Auto-generated method stub
+		super.cleanup(context);
+		_output.close();
+	}
+	
+	
 }

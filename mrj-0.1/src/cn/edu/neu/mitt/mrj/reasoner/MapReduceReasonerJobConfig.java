@@ -176,14 +176,16 @@ public class MapReduceReasonerJobConfig {
 	
 	
 	// Output to CassandraDB.COLUMNFAMILY_JUSTIFICATIONS
-	private static void configureCassandraOutput(Job job, Integer step) {
+	private static void configureCassandraOutput(Job job, int step) {
 		//Set the output
         job.setOutputKeyClass(Map.class);
         job.setOutputValueClass(List.class);
         
         job.setOutputFormatClass(CqlBulkOutputFormat.class);
-        CqlBulkOutputFormat.setColumnFamilySchema(job.getConfiguration(), CassandraDB.KEYSPACE + ".step1", CassandraDB.getStepsSchema(1));
-        System.out.println("Schema : " + CassandraDB.getStepsSchema(1));
+        CqlBulkOutputFormat.setColumnFamilySchema(job.getConfiguration(), "step" + step, CassandraDB.getStepsSchema(step));
+        System.out.println("Schema we set: " + CassandraDB.getStepsSchema(step));
+        System.out.println("Schema we get: " + CqlBulkOutputFormat.getColumnFamilySchema(job.getConfiguration(), "step"+step));
+        CqlBulkOutputFormat.setColumnFamilyInsertStatement(job.getConfiguration(), "step"+step, CassandraDB.getStepsStatement(step));
 //        job.setOutputFormatClass(ColumnFamilyOutputFormat.class);
         
         ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
@@ -196,7 +198,7 @@ public class MapReduceReasonerJobConfig {
          * addMultiNamedOutput
          * 
          */
-        JobConf jobconf = new JobConf(job.getConfiguration());
+//        JobConf jobconf = new JobConf(job.getConfiguration());
 //        MultipleOutputs.addNamedOutput(jobconf, "step" + step, ColumnFamilyOutputFormat.class, ByteBuffer.class, List.class);
 //        MultipleOutputs.addNamedOutput(jobconf, CassandraDB.COLUMNFAMILY_ALLTRIPLES, ColumnFamilyOutputFormat.class, ByteBuffer.class, List.class);
        

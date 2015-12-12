@@ -118,22 +118,11 @@ public class RDFSReasoner extends Configured implements Tool {
 //        conf.set(outputCF1, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
         conf.set(outputCF1, "step1");
         conf.set(outputCF2, "alltriples");
-		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
 		ConfigHelper.setOutputColumnFamily(conf, "step1");	
 		MrjMultioutput.addNamedOutput(job, conf.get(outputCF1), CqlBulkOutputFormat.class, ByteBuffer.class, List.class);
 		MrjMultioutput.addNamedOutput(job, conf.get(outputCF2), CqlBulkOutputFormat.class, ByteBuffer.class, List.class);
 		CqlConfigHelper.setOutputCql(conf, "select * from step1");
 		
-		
-//		CqlBulkOutputFormat.setColumnFamilySchema(conf, "step1", CassandraDB.getStepsSchema(1));
-//		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF2, CassandraDB.getStepsSchema(1));
-//		CqlBulkOutputFormat.setColumnFamilyInsertStatement(conf, "step1", CassandraDB.getAlltripleStatement());
-//		CqlBulkOutputFormat.setColumnFamilyInsertStatement(conf, outputCF2, CassandraDB.getAlltripleStatement());
-
-		
-		System.out.println("cqlconfig");
-		CqlConfigHelper.setOutputCql(conf, "select * from step1");
-		System.out.println("set out put cql");
 		
 //		System.out.println(CqlBulkOutputFormat.getColumnFamilyInsertStatement(conf, outputCF1));
 //		System.out.println(CqlBulkOutputFormat.getColumnFamilySchema(conf, outputCF1));
@@ -167,13 +156,13 @@ public class RDFSReasoner extends Configured implements Tool {
 		conf.set(outputCF2, "alltriples");
 		
 		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
-		ConfigHelper.setOutputColumnFamily(conf, "alltriples");	
+		ConfigHelper.setOutputColumnFamily(conf, "step2");	
 		
-		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF1, CassandraDB.getAlltripleSchema());
-		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF2, CassandraDB.getStepsSchema(2));
-		MrjMultioutput.addNamedOutput(job, conf.get(outputCF1), CqlOutputFormat.class, ByteBuffer.class, List.class);
-		MrjMultioutput.addNamedOutput(job, conf.get(outputCF2), CqlOutputFormat.class, ByteBuffer.class, List.class);
-		CqlConfigHelper.setOutputCql(conf, "select * from step1");
+//		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF1, CassandraDB.getAlltripleSchema());
+//		CqlBulkOutputFormat.setColumnFamilySchema(conf, outputCF2, CassandraDB.getStepsSchema(2));
+		MrjMultioutput.addNamedOutput(job, conf.get(outputCF1), CqlBulkOutputFormat.class, ByteBuffer.class, List.class);
+		MrjMultioutput.addNamedOutput(job, conf.get(outputCF2), CqlBulkOutputFormat.class, ByteBuffer.class, List.class);
+		CqlConfigHelper.setOutputCql(conf, "select * from step2");
 
 //		ConfigHelper.setOutputKeyspace(conf, CassandraDB.KEYSPACE);
 //		ConfigHelper.setOutputColumnFamily(conf, "step1");	
