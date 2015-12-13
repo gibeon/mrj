@@ -193,10 +193,13 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 	protected void cleanup(
 			Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
 			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		super.cleanup(context);
+		
 		_output.close();
+		
+		super.cleanup(context);
 	}
+	
+	
 	
 	
 }
