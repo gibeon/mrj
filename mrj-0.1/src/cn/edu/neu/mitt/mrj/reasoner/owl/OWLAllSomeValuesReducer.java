@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +18,7 @@ import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 
 public class OWLAllSomeValuesReducer extends Reducer<BytesWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>> {
 	
@@ -30,6 +32,7 @@ public class OWLAllSomeValuesReducer extends Reducer<BytesWritable, BytesWritabl
 	// Added by WuGang
 	private LinkedList<Long> others = new LinkedList<Long>();	// ��types����һ��
 	private LinkedList<Byte> s_a_types = new LinkedList<Byte>();	// ��types����һ��,���ڴ洢��someValues(0)����allValues(1)����
+	private MultipleOutputs _output;
 
 	@Override
 	public void reduce(BytesWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
@@ -95,7 +98,7 @@ public class OWLAllSomeValuesReducer extends Reducer<BytesWritable, BytesWritabl
 
 //					System.out.println("Generate an extended triple for OWLAllSomeValues: " + triple);
 //					context.write(source, triple);
-					CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step12");
+					CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step12");
 				}
 			}
 		}
@@ -104,6 +107,7 @@ public class OWLAllSomeValuesReducer extends Reducer<BytesWritable, BytesWritabl
 	@Override
 	public void setup(Context context) {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 		source.setDerivation(TripleSource.OWL_DERIVED);
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));

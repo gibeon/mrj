@@ -69,7 +69,7 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 			propURIs.add(itr.next().get()); // ���p
 
 //		 logger.info("while1 " + (System.currentTimeMillis() - time));
-		System.out.println("while1 " + (System.currentTimeMillis() - time));
+//		System.out.println("while1 " + (System.currentTimeMillis() - time));
 
 		Iterator<Long> itrProp = propURIs.iterator();
 		while (itrProp.hasNext()) {
@@ -95,7 +95,7 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 
 //		 logger.info("while2 " + (System.currentTimeMillis() - time));
 		time = System.currentTimeMillis();
-		System.out.println("while2 " + (System.currentTimeMillis() - time));
+//		System.out.println("while2 " + (System.currentTimeMillis() - time));
 
 		// Derive the new statements
 		// Iterator<Long> itr2 = derivedProps.iterator();
@@ -128,7 +128,7 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 					_output, "step2");
 //			 logger.info("write " + (System.currentTimeMillis() - time));
 			time = System.currentTimeMillis();
-			System.out.println("finish " + (System.currentTimeMillis() - time));
+//			System.out.println("finish " + (System.currentTimeMillis() - time));
 			// CassandraDB.writealltripleToMapReduceContext(oTriple, source,
 			// context);
 			// context.write(source, oTriple);

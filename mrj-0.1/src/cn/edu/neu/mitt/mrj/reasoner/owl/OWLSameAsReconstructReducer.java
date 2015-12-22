@@ -8,8 +8,10 @@ import java.util.Map;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 import cn.edu.neu.mitt.mrj.data.Triple;
@@ -19,7 +21,8 @@ public class OWLSameAsReconstructReducer extends Reducer<BytesWritable, BytesWri
 
 	private TripleSource oKey = new TripleSource();
 	private Triple oValue = new Triple();
-	
+	private MultipleOutputs _output;
+
 	@Override
 	public void reduce(BytesWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
 //		System.out.println("In OWLSameAsReconstructReducer!!!");
@@ -78,7 +81,7 @@ public class OWLSameAsReconstructReducer extends Reducer<BytesWritable, BytesWri
 			}
 			
 //			System.out.println("Find a complete replacment of triple: " + oValue);
-			CassandraDB.writeJustificationToMapReduceContext(oValue, oKey, context, "step10");
+			CassandraDB.writeJustificationToMapReduceMultipleOutputs(oValue, oKey, _output, "step10");
 //			context.write(oKey, oValue);
 		}
 	}
@@ -86,6 +89,7 @@ public class OWLSameAsReconstructReducer extends Reducer<BytesWritable, BytesWri
 	@Override
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 	}
 }

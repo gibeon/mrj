@@ -16,6 +16,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
@@ -33,7 +35,8 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 	
 	private TripleSource source = new TripleSource();
 	private Triple triple = new Triple();
-	
+	private MultipleOutputs _output;
+
 	protected static  Map<Long, Collection<Long>> subpropSchemaTriples = null;
 	public static Map<Long, Collection<Long>> subclassSchemaTriples = null;
 	public static Map<Long, Collection<Long>> equivalenceClassesSchemaTriples = null;		// Added by WuGang
@@ -109,7 +112,7 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				}
 				
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step11");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step11");
 			}
 		}
 		
@@ -146,7 +149,7 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				}
 				
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step11");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step11");
 			}
 		}
 
@@ -180,7 +183,7 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				triple.setRobject(triple.getObject());
 				
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step11");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step11");
 			}
 		}
 		
@@ -215,7 +218,7 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				triple.setRobject(triple.getObject());
 				
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step11");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step11");
 			}
 		}
 	}
@@ -223,6 +226,7 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 	@Override
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 		source.setDerivation(TripleSource.OWL_DERIVED);
 		source.setStep((byte)context.getConfiguration().getInt("reasoner.step", 0));

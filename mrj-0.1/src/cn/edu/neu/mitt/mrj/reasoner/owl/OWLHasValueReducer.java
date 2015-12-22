@@ -17,6 +17,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
@@ -40,6 +42,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 	
 	private Map<Long,Collection<Long>> hasValue2Map = new HashMap<Long, Collection<Long>>();
 	private Map<Long,Collection<Long>> onProperty2Map = new HashMap<Long, Collection<Long>>();
+	private MultipleOutputs _output;
 
 	public void reduce(LongWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
 
@@ -71,7 +74,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 									triple.setRobject(triple.getObject());				// w
 //									System.out.println("In OWLHasValueReducer for 14b output: "+triple);	// Added by Wugang
 									
-									CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step13");
+									CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step13");
 //									context.write(source, triple);
 								}
 							}
@@ -101,7 +104,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 							triple.setRobject(object);							// w
 //							System.out.println("In OWLHasValueReducer for 14a output: "+triple);	// Added by Wugang
 							
-							CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step13");
+							CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step13");
 //							context.write(source, triple);
 						}
 					}
@@ -112,6 +115,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 		source.setDerivation(TripleSource.OWL_DERIVED);
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));

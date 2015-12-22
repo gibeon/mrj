@@ -11,6 +11,7 @@ package cn.edu.neu.mitt.mrj.reasoner;
 
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 
 /**
  * @author gibeo_000
@@ -183,43 +185,19 @@ public class MapReduceReasonerJobConfig {
         
         job.setOutputFormatClass(CqlBulkOutputFormat.class);
         CqlBulkOutputFormat.setColumnFamilySchema(job.getConfiguration(), "step" + step, CassandraDB.getStepsSchema(step));
-        System.out.println("Schema we set: " + CassandraDB.getStepsSchema(step));
-        System.out.println("Schema we get: " + CqlBulkOutputFormat.getColumnFamilySchema(job.getConfiguration(), "step"+step));
+//        System.out.println("Schema we set: " + CassandraDB.getStepsSchema(step));
+//        System.out.println("Schema we get: " + CqlBulkOutputFormat.getColumnFamilySchema(job.getConfiguration(), "step"+step));
         CqlBulkOutputFormat.setColumnFamilyInsertStatement(job.getConfiguration(), "step"+step, CassandraDB.getStepsStatement(step));
-//        job.setOutputFormatClass(ColumnFamilyOutputFormat.class);
         
         ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
         ConfigHelper.setOutputPartitioner(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.partitioner);
 
-        //ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, "alltriples");
         ConfigHelper.setOutputKeyspace(job.getConfiguration(), CassandraDB.KEYSPACE);
-     
-        /*
-         * addMultiNamedOutput
-         * 
-         */
-//        JobConf jobconf = new JobConf(job.getConfiguration());
-//        MultipleOutputs.addNamedOutput(jobconf, "step" + step, ColumnFamilyOutputFormat.class, ByteBuffer.class, List.class);
-//        MultipleOutputs.addNamedOutput(jobconf, CassandraDB.COLUMNFAMILY_ALLTRIPLES, ColumnFamilyOutputFormat.class, ByteBuffer.class, List.class);
-       
-//        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), "step" + step);       
-//        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), KEYSPACE, OUTPUT_COLUMN_FAMILY);
-//        job.getConfiguration().set(CONF_COLUMN_NAME, "sum");
-        
-//        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.COLUMNFAMILY_ALLTRIPLES);
-        
-   //     String query = "UPDATE " + CassandraDB.KEYSPACE + ".step" + step + 
-   //     		" SET " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=? " ;
-//        		"UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES + 
-//        		" SET " + CassandraDB.COLUMN_IS_LITERAL + "=?" + CassandraDB.COLUMN_TRIPLE_TYPE + "=?";
-//        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES +
-//        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=?, " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=?";
-   //     CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
-//        String querysString = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES + 
-//        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + " =? ";// + CassandraDB.COLUMN_IS_LITERAL + "=?, " + CassandraDB.COLUMN_TRIPLE_TYPE + " =? ";
-        //CqlConfigHelper.setOutputCql(job.getConfiguration(), querysString);
-
-        
+		ConfigHelper.setOutputColumnFamily(job.getConfiguration(), "step" + step);
+		
+		MrjMultioutput.addNamedOutput(job, CassandraDB.COLUMNFAMILY_ALLTRIPLES, CqlBulkOutputFormat.class, ByteBuffer.class, List.class);
+		MrjMultioutput.addNamedOutput(job, "step" + step, CqlBulkOutputFormat.class, ByteBuffer.class, List.class);
+//		CqlConfigHelper.setOutputCql(conf, "select * from step1");
 	}
 
 	

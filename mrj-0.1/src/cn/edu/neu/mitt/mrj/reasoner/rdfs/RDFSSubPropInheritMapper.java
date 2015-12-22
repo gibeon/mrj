@@ -57,6 +57,7 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 			
 			oKey.set(bKey, 0, 17);
 			oValue.set(pre);
+			System.out.println("subprop map rule 7 " + pre);
 			context.write(oKey, oValue);
 		}
 		
@@ -66,7 +67,8 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 			bKey[0] = 5;
 			NumberUtils.encodeLong(bKey, 1, sub);
 			oKey.set(bKey, 0, 9);
-			oValue.set(obj);			
+			oValue.set(obj);
+			System.out.println("subprop map rule 5 " + obj);
 			context.write(oKey, oValue);
 		}
 	}
@@ -81,13 +83,13 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 //		} catch (Exception e) {
 //			System.out.println("Error in creating Index");
 //		}
-		try {
-			CassandraDB d = new CassandraDB();
-			d.createIndexOnTripleType();
-			d.createIndexOnRule();
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
+//		try {
+//			CassandraDB d = new CassandraDB();
+//			d.createIndexOnTripleType();
+//			d.createIndexOnRule();
+//		} catch (Exception e) {
+//			// TODO: handle exception
+//		}
 		if (subpropSchemaTriples == null) {
 			subpropSchemaTriples = new HashSet<Long>();
 			try {

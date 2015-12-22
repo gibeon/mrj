@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,7 @@ import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 
 public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>> {
 
@@ -30,6 +32,7 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 	
 	private int baseLevel = 0;
 	private int level = 0;
+	private MultipleOutputs _output;
 
 	public void reduce(BytesWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
 		
@@ -95,7 +98,7 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 					source.setTransitiveLevel((int)(Math.abs(entry.getValue()) + Math.abs(entry2.getValue()) - baseLevel));
 					
 //					context.write(source, triple);
-					CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step6");
+					CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step6");
 					
 //					System.out.println("In OWLTransitivityReducer: " + triple);
 				}
@@ -106,6 +109,7 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 	@Override
 	public void setup(Context context) {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 		baseLevel = context.getConfiguration().getInt("reasoning.baseLevel", 1) - 1;
 		level = context.getConfiguration().getInt("reasoning.transitivityLevel", -1);
 		// Modified by WuGang 2015-01-28

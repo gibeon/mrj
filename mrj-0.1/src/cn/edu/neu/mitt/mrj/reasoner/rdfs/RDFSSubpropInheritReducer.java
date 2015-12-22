@@ -18,6 +18,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
@@ -40,6 +42,9 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 
 	private Triple oTriple = new Triple();
 	private Triple oTriple2 = new Triple();
+	
+	private MultipleOutputs _output;
+
 
 	private void recursiveScanSubproperties(long value, Set<Long> set) {
 		Collection<Long> subprops = subpropSchemaTriples.get(value);
@@ -94,9 +99,9 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 				oTriple.setPredicate(itr3.next());				
 				for (LongWritable pre : values) {
 					oTriple.setRpredicate(pre.get());
-					System.out.println("before wj");
-					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context, "step1");
-					System.out.println("after wj");
+					System.out.println("before w rule 7");
+					CassandraDB.writeJustificationToMapReduceMultipleOutputs(oTriple, source, _output, "step1");
+					System.out.println("after w rule 7");
 					//					context.write(source, oTriple);
 				}
 			}
@@ -133,9 +138,9 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 				oTriple.setObject(itr4.next());
 				for(LongWritable obj:values){
 					oTriple.setRobject(obj.get());
-					System.out.println("before wj");
-					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context, "step1");	
-					System.out.println("before wj");
+					System.out.println("before w rule 5");
+					CassandraDB.writeJustificationToMapReduceMultipleOutputs(oTriple, source, _output, "step1");	
+					System.out.println("before w rule 5");
 //					context.write(source, oTriple);
 				}
 			}
@@ -151,9 +156,7 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 	@Override
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
-//		System.out.println("reduce setup");
-//        CqlBulkOutputFormat.setColumnFamilySchema(context.getConfiguration(), CassandraDB.KEYSPACE + ".step1", CassandraDB.getStepsSchema(1));
-//		System.out.println(CqlBulkOutputFormat.getColumnFamilySchema(context.getConfiguration(), CassandraDB.COLUMNFAMILY_ALLTRIPLES + "step1"));
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 		if (subpropSchemaTriples == null) {
 			CassandraDB db;
@@ -188,5 +191,15 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 		oTriple2.setObjectLiteral(false);		
 
 	}
+
+	@Override
+	protected void cleanup(
+			Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		_output.close();
+		super.cleanup(context);
+	}
+	
+	
 	
 }

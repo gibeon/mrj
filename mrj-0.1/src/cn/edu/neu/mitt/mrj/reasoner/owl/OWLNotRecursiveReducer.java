@@ -16,6 +16,7 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
@@ -37,7 +39,8 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 	private Set<Long> set = new HashSet<Long>();
 	
 	protected Map<Long, Collection<Long>> schemaInverseOfProperties = null;
-	
+	private MultipleOutputs _output;
+
 	protected void reduce(BytesWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
 		byte[] bytes = key.getBytes();
 		long rsubject=0, rpredicate=0, robject=0;
@@ -97,7 +100,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 				triple.setObject(object);
 //				System.out.println("Find a derive in functional and inverse functional property!" + triple);
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step5");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step5");
 				outputSize++;
 			}
 			context.getCounter("OWL derived triples", "functional and inverse functional property").increment(outputSize);
@@ -122,7 +125,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 				triple.setPredicate(itr.next().get());
 				triple.setRpredicate(triple.getPredicate());	// Added by WuGang
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step5");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step5");
 				context.getCounter("OWL derived triples", "simmetric property").increment(1);
 			}
 						
@@ -154,7 +157,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 					triple.setPredicate(derivedPredicate);		// Only one of the inverse, the others will be completed in outputInverseOf()
 					//triple.setPredicate(itrInverse.next());	// Commented by WuGang 2015-01-27 
 //					context.write(source, triple);
-					CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step5");
+					CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step5");
 					context.getCounter("OWL derived triples", "inverse of").increment(1);
 					
 					// Moved to here by WuGang, 2015-01-27
@@ -191,7 +194,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 					transitiveSource.setDerivation(TripleSource.TRANSITIVE_ENABLED);
 				triple.setPredicate(Math.abs(predicate));
 //				context.write(transitiveSource, triple);
-				CassandraDB.writeJustificationToMapReduceContext(triple, transitiveSource, context, "step5");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, transitiveSource, _output, "step5");
 				context.getCounter("OWL derived triples", "transitive property input").increment(1);
 			}
 		default:
@@ -213,7 +216,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 					triple.setObject(subject);				
 					triple.setPredicate(inverseOf);
 //					context.write(source, triple);
-					CassandraDB.writeJustificationToMapReduceContext(triple, source, context, "step5");
+					CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step5");
 					context.getCounter("OWL derived triples", "inverse of").increment(1);
 					outputInverseOf(object, subject, inverseOf, alreadyDerived, context);
 				}
@@ -224,6 +227,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 	@Override
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 		source.setDerivation(TripleSource.OWL_DERIVED);
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));

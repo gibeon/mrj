@@ -11,12 +11,14 @@ import java.util.Map;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 
 public class OWLSameAsReducer extends Reducer<LongWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>> {
 	
@@ -25,7 +27,8 @@ public class OWLSameAsReducer extends Reducer<LongWritable, BytesWritable, Map<S
 	private HashSet<Long> duplicates = new HashSet<Long>();
 	
 	private List<Long> storage = new LinkedList<Long>();
-	
+	private MultipleOutputs _output;
+
 	@Override
 	public void reduce(LongWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
 		
@@ -65,7 +68,7 @@ public class OWLSameAsReducer extends Reducer<LongWritable, BytesWritable, Map<S
 			long lValue = itr2.next();
 			if (!duplicates.contains(lValue)) {
 				oValue.setObject(lValue);
-				CassandraDB.writeJustificationToMapReduceContext(oValue, oKey, context, "step8");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputs(oValue, oKey, _output, "step8");
 				duplicates.add(lValue);
 			}		
 		}
@@ -80,6 +83,7 @@ public class OWLSameAsReducer extends Reducer<LongWritable, BytesWritable, Map<S
 	@Override
 	public void setup(Context context) {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 		oValue.setObjectLiteral(false);
 		oValue.setPredicate(TriplesUtils.OWL_SAME_AS);

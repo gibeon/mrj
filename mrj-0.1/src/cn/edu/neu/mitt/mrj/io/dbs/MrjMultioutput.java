@@ -27,48 +27,45 @@ public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VA
 
 	@Override
 	protected synchronized RecordWriter getRecordWriter(
-			TaskAttemptContext taskContext, String columnFamilyNameName)
+			TaskAttemptContext taskContext, String columnFamilyName)
 			throws IOException, InterruptedException {
 		
 		
-//		CqlBulkOutputFormat.setColumnFamilySchema(taskContext.getConfiguration(), "step1", CassandraDB.getStepsSchema(1));
-//		CqlBulkOutputFormat.setColumnFamilyInsertStatement(taskContext.getConfiguration(), "step1", CassandraDB.getAlltripleStatement());
-
 	    // look for record-writer in the cache
-	    RecordWriter writer = recordWriters.get(columnFamilyNameName);
+	    RecordWriter writer = recordWriters.get(columnFamilyName);
 	    
-		System.out.println("get Record Writer");
+//		System.out.println("get Record Writer");
 	    
 	    // If not in cache, create a new one
 	    if (writer == null) {
 	      // get the record writer from context output format
 //	      FileOutputFormat.setOutputName(taskContext, baseFileName);
-			System.out.println("Before ConfigHelper.setOutputColumnFamily");
-			System.out.println(ConfigHelper.getOutputColumnFamily(taskContext.getConfiguration()));
+//			System.out.println("Before ConfigHelper.setOutputColumnFamily");
+//			System.out.println(ConfigHelper.getOutputColumnFamily(taskContext.getConfiguration()));
 	    	
 	    	
-			ConfigHelper.setOutputColumnFamily(taskContext.getConfiguration(), columnFamilyNameName);
-			CqlConfigHelper.setOutputCql(taskContext.getConfiguration(), getCql(columnFamilyNameName));
+			ConfigHelper.setOutputColumnFamily(taskContext.getConfiguration(), columnFamilyName);
+//			CqlConfigHelper.setOutputCql(taskContext.getConfiguration(), getCql(columnFamilyNameName));
 
 			CqlBulkOutputFormat.setColumnFamilySchema(
 					taskContext.getConfiguration(), 
-					columnFamilyNameName, 
-					getSchema(columnFamilyNameName));
+					columnFamilyName, 
+					getSchema(columnFamilyName));
 					
 			CqlBulkOutputFormat.setColumnFamilyInsertStatement(
 					taskContext.getConfiguration(), 
-					columnFamilyNameName, 
-					getInsertStatement(columnFamilyNameName));
+					columnFamilyName, 
+					getInsertStatement(columnFamilyName));
 			
 
 			
 	      try {
-	    	  System.out.println(taskContext.getOutputFormatClass());
+//	    	  System.out.println(taskContext.getOutputFormatClass());
 	        writer = ((OutputFormat) ReflectionUtils.newInstance(
 	          taskContext.getOutputFormatClass(), taskContext.getConfiguration()))
 	          .getRecordWriter(taskContext);
 	        
-	        System.out.println(writer.getClass());
+//	        System.out.println(writer.getClass());
 	      } catch (ClassNotFoundException e) {
 	        throw new IOException(e);
 	      }
@@ -76,11 +73,11 @@ public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VA
 	      // if counters are enabled, wrap the writer with context 
 	      // to increment counters 
 	      if (countersEnabled) {
-	        writer = new MultipleOutputs.RecordWriterWithCounter(writer, columnFamilyNameName, context);
+	        writer = new MultipleOutputs.RecordWriterWithCounter(writer, columnFamilyName, context);
 	      }
 	      
 	      // add the record-writer to the cache
-	      recordWriters.put(columnFamilyNameName, writer);
+	      recordWriters.put(columnFamilyName, writer);
 	    }
 	    return writer;
 	}
@@ -96,7 +93,7 @@ public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VA
 	}
 	
 	String getSchema(String columnFamilyNameName){
-		System.out.println(columnFamilyNameName + " schema");
+//		System.out.println(columnFamilyNameName + " schema");
 		if (columnFamilyNameName == "alltriples") {
 			return CassandraDB.getAlltripleSchema();
 		}
@@ -104,7 +101,7 @@ public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VA
 	}
 	
 	String getInsertStatement(String columnFamilyNameName){
-		System.out.println(columnFamilyNameName + " insert statement");
+//		System.out.println(columnFamilyNameName + " insert statement");
 		if (columnFamilyNameName == "alltriples") {
 			return CassandraDB.getAlltripleStatement();
 		}
