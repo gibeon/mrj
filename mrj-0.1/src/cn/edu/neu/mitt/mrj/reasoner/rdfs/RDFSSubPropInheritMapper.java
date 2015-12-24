@@ -57,10 +57,10 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 			
 			oKey.set(bKey, 0, 17);
 			oValue.set(pre);
-			System.out.println("subprop map rule 7 " + pre);
 			context.write(oKey, oValue);
+//			System.out.println(" i " + i);
 		}
-		
+				
 		//Check suprop transitivity
 		if (pre == TriplesUtils.RDFS_SUBPROPERTY && subpropSchemaTriples.contains(obj)) {
 			//Write the 05 + subject
@@ -68,7 +68,6 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 			NumberUtils.encodeLong(bKey, 1, sub);
 			oKey.set(bKey, 0, 9);
 			oValue.set(obj);
-			System.out.println("subprop map rule 5 " + obj);
 			context.write(oKey, oValue);
 		}
 	}
@@ -77,19 +76,7 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 	protected void setup(Context context) throws IOException {
 		hasSchemaChanged = false;
 		previousExecutionStep = context.getConfiguration().getInt("lastExecution.step", -1);
-//		try {	//有存在的 直接跳出了~~ 	必须放前面---db对象已经声明过的...
-//			CassandraDB d = new CassandraDB();
-//			d.Index();
-//		} catch (Exception e) {
-//			System.out.println("Error in creating Index");
-//		}
-//		try {
-//			CassandraDB d = new CassandraDB();
-//			d.createIndexOnTripleType();
-//			d.createIndexOnRule();
-//		} catch (Exception e) {
-//			// TODO: handle exception
-//		}
+
 		if (subpropSchemaTriples == null) {
 			subpropSchemaTriples = new HashSet<Long>();
 			try {

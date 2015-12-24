@@ -2,6 +2,7 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +24,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.sun.corba.se.spi.ior.Writeable;
 
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
@@ -64,7 +67,7 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 	public void reduce(BytesWritable key, Iterable<LongWritable> values, Context context)
 											throws IOException, InterruptedException {
 		byte[] bKey = key.getBytes();
-		
+		System.out.println("bkey " + bKey[0]);
 		switch(bKey[0]) {
 		case 2:
 		case 3:	// rdfs rule 7
@@ -74,8 +77,13 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 			propURIs.clear();
 			//filter the properties that are already present
 			Iterator<LongWritable> itr = values.iterator();
+			/*
+			 * values在使用iterator之后会将值清空，使用list记录values
+			 */
+			List<Long> list1 = new ArrayList<Long>();
 			while (itr.hasNext()) {
 				long value = itr.next().get();
+				list1.add(value);
 				if (!propURIs.contains(value)) {
 					recursiveScanSubproperties(value, propURIs);
 				}
@@ -114,11 +122,15 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 			propURIs.clear();
 			//filter the properties that are already present
 			Iterator<LongWritable> itr2 = values.iterator();
+			List<Long> list = new ArrayList<Long>();
+			System.out.println("rule 5 reduce ");
 			while (itr2.hasNext()) {
 				long value = itr2.next().get();
+				list.add(value);
 				if (!propURIs.contains(value)) {
 					recursiveScanSubproperties(value, propURIs);
 				}
+				System.out.println("itr2 values");
 			}
 			
 			Iterator<Long> itr4 = propURIs.iterator();
@@ -133,16 +145,21 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 //				oTriple.setObject(itr4.next());				
 //				context.write(source, oTriple);
 //			}
-			// Modified by WuGang, 2010-08-26	
+			// Modified by WuGang, 2010-08-26
+			System.out.println("itr4 " + itr4.toString());
+			System.out.println("itr4 hasNext " + itr4.hasNext());
 			while (itr4.hasNext()) {
+				System.out.println("itr4 " + itr4.toString());
 				oTriple.setObject(itr4.next());
-				for(LongWritable obj:values){
-					oTriple.setRobject(obj.get());
+				System.out.println("values " + values.toString());
+				for(Long obj:list){
+					oTriple.setRobject(obj);
 					System.out.println("before w rule 5");
 					CassandraDB.writeJustificationToMapReduceMultipleOutputs(oTriple, source, _output, "step1");	
 					System.out.println("before w rule 5");
 //					context.write(source, oTriple);
 				}
+
 			}
 
 			context.getCounter("RDFS derived triples", "subprop transitivity rule").increment(propURIs.size());

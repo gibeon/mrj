@@ -74,7 +74,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
  */
 public class CassandraDB {
     private static final Logger logger = LoggerFactory.getLogger(CassandraDB.class);
-    public static final String KEYSPACE = "mrjks31";	// mr.j keyspace
+    public static final String KEYSPACE = "mrjkss1";	// mr.j keyspace
     public static final String COLUMNFAMILY_JUSTIFICATIONS = "justifications";	// mr.j keyspace
     public static final String COLUMNFAMILY_RESOURCES = "resources";	// mr.j keyspace
     public static final String COLUMNFAMILY_RESULTS = "results";	// mr.j keyspace

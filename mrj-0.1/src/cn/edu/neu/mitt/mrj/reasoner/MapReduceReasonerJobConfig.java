@@ -217,7 +217,7 @@ public class MapReduceReasonerJobConfig {
 		job.setJarByClass(classJar);
 	    job.setNumReduceTasks(numReduceTasks);
 	    
-	    job.setNumReduceTasks(16);
+	    job.setNumReduceTasks(8);
 	    
 	    if (bConfigCassandraInput)
 	    	configureCassandraInput(job, typeFilters, transitiveLevelFilters, certainStep);
