@@ -3,9 +3,11 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,7 +49,11 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 
 	private MultipleOutputs _output;
 	private ByteBuffer outputKey;
-	 
+	private Map<String, ByteBuffer> keys = 	new LinkedHashMap<String, ByteBuffer>();
+	private Map<String, ByteBuffer> allkeys = 	new LinkedHashMap<String, ByteBuffer>();
+	private List<ByteBuffer> allvariables =  new ArrayList<ByteBuffer>();
+	private List<ByteBuffer> allTValues =  new ArrayList<ByteBuffer>();
+	private List<ByteBuffer> stepsValues =  new ArrayList<ByteBuffer>();
 	@Override
 	public void reduce(BytesWritable key, Iterable<LongWritable> values, Context context)
 				throws IOException, InterruptedException {
@@ -124,8 +130,8 @@ public class RDFSSubpropDomRangeReducer extends Reducer<BytesWritable, LongWrita
 				oTriple.setRobject(uri_opposite);
 			}
 
-			CassandraDB.writeJustificationToMapReduceMultipleOutputs(oTriple, source,
-					_output, "step2");
+			CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output, keys, allkeys, stepsValues, allTValues,"step2");	
+
 //			 logger.info("write " + (System.currentTimeMillis() - time));
 			time = System.currentTimeMillis();
 //			System.out.println("finish " + (System.currentTimeMillis() - time));

@@ -110,7 +110,6 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 					triple.setRpredicate(TriplesUtils.OWL_EQUIVALENT_CLASS);
 					triple.setRobject(triple.getSubject());
 				}
-				
 //				context.write(source, triple);
 				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step11");
 			}
@@ -216,7 +215,6 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 				triple.setRsubject(triple.getSubject());
 				triple.setRpredicate(TriplesUtils.RDFS_SUBCLASS);
 				triple.setRobject(triple.getObject());
-				
 //				context.write(source, triple);
 				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step11");
 			}
@@ -275,5 +273,13 @@ public class OWLEquivalenceSCSPReducer extends Reducer<LongWritable, BytesWritab
 			e.printStackTrace();
 		}
 
+	}
+
+	@Override
+	protected void cleanup(
+			Reducer<LongWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		_output.close();
+		super.cleanup(context);
 	}
 }

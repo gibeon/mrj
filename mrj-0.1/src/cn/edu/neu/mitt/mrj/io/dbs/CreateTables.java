@@ -41,7 +41,7 @@ public class CreateTables {
                 "v2" + " bigint, " +
                 "v3" + " bigint, " +
                 "transitivelevel int" + 
-                ", primary key((sub, pre, obj, rule) ,v1, v2, v3 ))");
+                ", primary key((sub, pre, obj, rule) ,v1, v2, v3 )) WITH compaction = {'class': 'LeveledCompactionStrategy'}");
 	}
 	
 	public void close(){

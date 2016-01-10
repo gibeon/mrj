@@ -47,8 +47,10 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 	public void reduce(LongWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
 
 		Iterator<BytesWritable> itr = values.iterator();
+		System.out.println("step 6");
 		while (itr.hasNext()) {
 			byte[] v = itr.next().getBytes();
+			System.out.println("step6 has values reduce");
 			if (v.length > 0) {
 				if (v[0] == 0) { //Rule 14b
 //					System.out.println("In OWLHasValueReducer for 14b: ");	// Added by Wugang
@@ -72,8 +74,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 									triple.setRsubject(object);							// v
 									triple.setRpredicate(TriplesUtils.OWL_HAS_VALUE);	// owl:hasValue
 									triple.setRobject(triple.getObject());				// w
-//									System.out.println("In OWLHasValueReducer for 14b output: "+triple);	// Added by Wugang
-									
+									System.out.println("In OWLHasValueReducer for 14b output: "+triple);	// Added by Wugang														
 									CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step13");
 //									context.write(source, triple);
 								}
@@ -148,5 +149,13 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 		} catch (TException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	protected void cleanup(
+			Reducer<LongWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		_output.close();
+		super.cleanup(context);
 	}
 }

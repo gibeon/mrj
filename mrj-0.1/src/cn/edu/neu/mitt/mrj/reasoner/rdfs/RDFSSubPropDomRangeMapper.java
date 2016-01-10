@@ -73,8 +73,6 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 		}
 
 		//Check if the predicate has a range
-		System.out.println("range " + rangeSchemaTriples);
-		System.out.println("row " + value);
 		if (rangeSchemaTriples.contains(value.getPredicate())
 				&& !value.isObjectLiteral()) {
 			NumberUtils.encodeLong(bKey,0,value.getObject());	// Added by WuGang, 2010-08-26
@@ -94,27 +92,21 @@ public class RDFSSubPropDomRangeMapper extends Mapper<Long, Row, BytesWritable, 
 		
 		try{		
 			CassandraDB db = new CassandraDB();
-			System.out.println("DB ");
-			System.out.println("domain : " + domainSchemaTriples + " range : " + rangeSchemaTriples);
 
 			if (domainSchemaTriples == null) {
-				System.out.println("domain begin" + previousExecutionStep);
 				domainSchemaTriples = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_DOMAIN_PROPERTY);
 				hasSchemaChanged = db.loadSetIntoMemory(domainSchemaTriples, filters, previousExecutionStep);
-				System.out.println("domain end");
 				// db not close
 			}
 			
 			if (rangeSchemaTriples == null) {
-				System.out.println("rangeSchemaTriples begin: " + hasSchemaChanged + previousExecutionStep);
 				rangeSchemaTriples = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_RANGE_PROPERTY);
 
 				hasSchemaChanged |= db.loadSetIntoMemory(rangeSchemaTriples, filters, previousExecutionStep);
-				System.out.println("rangeSchemaTriples  end: " + hasSchemaChanged);
 				db.CassandraDBClose();
 			}
 		}catch(TTransportException tte){

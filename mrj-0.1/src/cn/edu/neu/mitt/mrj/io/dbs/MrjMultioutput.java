@@ -4,10 +4,12 @@
 package cn.edu.neu.mitt.mrj.io.dbs;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.cassandra.hadoop.ConfigHelper;
 import org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat;
-import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -21,9 +23,41 @@ import org.apache.hadoop.util.ReflectionUtils;
  */
 public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VALUEOUT> {
 
+	private Map<String, TaskAttemptContext> taskContexts = new HashMap<String, TaskAttemptContext>();
+	
 	public MrjMultioutput(TaskInputOutputContext<?, ?, KEYOUT, VALUEOUT> context) {
 		super(context);
 	}
+	
+	
+
+	//This is copied from hadoop 0.23.11
+	// maybe resolve the problem of construct job redundantly
+	@Override
+	protected TaskAttemptContext getContext(String nameOutput)
+			throws IOException {
+		TaskAttemptContext taskContext = taskContexts.get(nameOutput);
+		
+		if (taskContext != null) {
+			return taskContext;
+		}
+		
+		// The following trick leverages the instantiation of a record writer via
+		// the job thus supporting arbitrary output formats.
+		Job job = new Job(context.getConfiguration());
+		job.setOutputFormatClass(getNamedOutputFormatClass(context, nameOutput));
+		job.setOutputKeyClass(getNamedOutputKeyClass(context, nameOutput));
+		job.setOutputValueClass(getNamedOutputValueClass(context, nameOutput));
+		
+	    taskContext = new TaskAttemptContext(
+	    	      job.getConfiguration(), context.getTaskAttemptID());
+		
+		taskContexts.put(nameOutput, taskContext);
+		
+		return taskContext;
+	}
+
+
 
 	@Override
 	protected synchronized RecordWriter getRecordWriter(

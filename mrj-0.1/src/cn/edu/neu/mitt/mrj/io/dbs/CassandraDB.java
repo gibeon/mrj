@@ -74,7 +74,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
  */
 public class CassandraDB {
     private static final Logger logger = LoggerFactory.getLogger(CassandraDB.class);
-    public static final String KEYSPACE = "mrjkss1";	// mr.j keyspace
+    public static final String KEYSPACE = "mrjks0";	// mr.j keyspace
     public static final String COLUMNFAMILY_JUSTIFICATIONS = "justifications";	// mr.j keyspace
     public static final String COLUMNFAMILY_RESOURCES = "resources";	// mr.j keyspace
     public static final String COLUMNFAMILY_RESULTS = "results";	// mr.j keyspace
@@ -188,7 +188,7 @@ public class CassandraDB {
                 COLUMN_TRIPLE_TYPE + " int, " +
                 COLUMN_INFERRED_STEPS + " int, " +
                 "PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + "," +  COLUMN_OBJ + 
-                ")) )";
+                ")) ) WITH compaction = {'class': 'LeveledCompactionStrategy'}";
     	return ALLTRIPLE_SCHEMA;
     }
     
@@ -205,7 +205,7 @@ public class CassandraDB {
                 COLUMN_TRANSITIVE_LEVELS + " int, " + 
                 "PRIMARY KEY((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ + ", " + COLUMN_RULE + 
                 "), " + COLUMN_V1 + ", " + COLUMN_V2 + ", " + COLUMN_V3 +
-                "))"; 
+                ")) WITH compaction = {'class': 'LeveledCompactionStrategy'}"; 
     	return STEPS_SCHEMA;
     }
     
@@ -222,7 +222,7 @@ public class CassandraDB {
                 COLUMN_TRANSITIVE_LEVELS + " int, " + 
                 "PRIMARY KEY((" + COLUMN_SUB + ", " + COLUMN_PRE + ", " + COLUMN_OBJ + ", " + COLUMN_RULE + 
                 "), " + COLUMN_V1 + ", " + COLUMN_V2 + ", " + COLUMN_V3 +
-                "))"; 
+                ")) WITH compaction = {'class': 'LeveledCompactionStrategy'}"; 
     	return STEPS_SCHEMA;
     }
     
@@ -342,7 +342,7 @@ public class CassandraDB {
                 COLUMN_TRIPLE_TYPE + " int, " +
                 COLUMN_INFERRED_STEPS + " int, " +
                 "PRIMARY KEY ((" + COLUMN_SUB + ", " + COLUMN_PRE + "," +  COLUMN_OBJ + 
-                ")) )";
+                ")) ) WITH compaction = {'class': 'LeveledCompactionStrategy'}";
 
         try {
             logger.info("set up table " + "all triples");
@@ -566,6 +566,62 @@ public class CassandraDB {
 		return step;
 	}
 	
+	public static void writeJustificationToMapReduceMultipleOutputsLessObjects(
+			Triple triple, 
+			TripleSource source, 
+			MultipleOutputs output,
+			Map<String, ByteBuffer> keys,
+			Map<String, ByteBuffer> allkeys,
+			List<ByteBuffer> stepsValues,
+			List<ByteBuffer> allTValues,
+			String stepname) throws IOException, InterruptedException{
+
+        keys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(triple.getSubject()));
+        keys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(triple.getPredicate()));
+        keys.put(CassandraDB.COLUMN_OBJ, ByteBufferUtil.bytes(triple.getObject()));
+        keys.put(CassandraDB.COLUMN_RULE, ByteBufferUtil.bytes((int)triple.getType()));	// int
+        keys.put(CassandraDB.COLUMN_V1, ByteBufferUtil.bytes(triple.getRsubject()));	// long
+        keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(triple.getRpredicate()));	// long
+        keys.put(CassandraDB.COLUMN_V3, ByteBufferUtil.bytes(triple.getRobject()));	// long
+        
+        allkeys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(triple.getSubject()));
+        allkeys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(triple.getPredicate()));
+        allkeys.put(CassandraDB.COLUMN_OBJ, ByteBufferUtil.bytes(triple.getObject()));
+	
+    	allTValues.add(ByteBufferUtil.bytes(triple.getSubject()));
+    	allTValues.add(ByteBufferUtil.bytes(triple.getPredicate()));
+    	allTValues.add(ByteBufferUtil.bytes(triple.getObject()));
+    	//用数字直接替代。
+    	allTValues.add(triple.isObjectLiteral()?ByteBuffer.wrap(new byte[]{1}):ByteBuffer.wrap(new byte[]{0}));
+    	allTValues.add(ByteBufferUtil.bytes(
+    			TriplesUtils.getTripleType(
+    					source, triple.getSubject(), 
+    					triple.getPredicate(), 
+    					triple.getObject())));
+    	allTValues.add(ByteBufferUtil.bytes((int)source.getStep()));
+    	
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getSubject()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getPredicate()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getObject()));
+    	stepsValues.add(ByteBufferUtil.bytes((int)triple.getType()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRsubject()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRpredicate()));
+    	stepsValues.add(ByteBufferUtil.bytes(triple.getRobject()));
+    	stepsValues.add(ByteBufferUtil.bytes((int)source.getTransitiveLevel()));  	
+    	
+    	output.write(CassandraDB.COLUMNFAMILY_ALLTRIPLES, null, allTValues);
+    	output.write(stepname, null, stepsValues);
+
+    	/*
+    	 * 必要否？减速否？
+    	 */
+    	keys.clear();
+    	allkeys.clear();
+    	allTValues.clear();
+    	stepsValues.clear();
+   	
+	}
+	
 	public static void writeJustificationToMapReduceMultipleOutputs(
 			Triple triple, 
 			TripleSource source, 
@@ -574,8 +630,8 @@ public class CassandraDB {
 		Map<String, ByteBuffer> keys = 	new LinkedHashMap<String, ByteBuffer>();
 		Map<String, ByteBuffer> allkeys = 	new LinkedHashMap<String, ByteBuffer>();
     	List<ByteBuffer> allvariables =  new ArrayList<ByteBuffer>();
-		long time = System.currentTimeMillis();
-
+//		long time = System.currentTimeMillis();
+	
     	byte one = 1;
     	byte zero = 0;
 	    // Prepare composite key (sub, pre, obj)
@@ -606,7 +662,7 @@ public class CassandraDB {
     	variables.add(ByteBufferUtil.bytes(source.getTransitiveLevel()));
     	
 
-    	
+
     	// Keys are not used for 
     	//   CqlBulkRecordWriter.write(Object key, List<ByteBuffer> values), 
     	//   so it can be set to null.
@@ -637,13 +693,13 @@ public class CassandraDB {
     	stepsValues.add(ByteBufferUtil.bytes(triple.getRsubject()));
     	stepsValues.add(ByteBufferUtil.bytes(triple.getRpredicate()));
     	stepsValues.add(ByteBufferUtil.bytes(triple.getRobject()));
-    	stepsValues.add(ByteBufferUtil.bytes((int)source.getTransitiveLevel()));
+    	stepsValues.add(ByteBufferUtil.bytes((int)source.getTransitiveLevel()));  	
     	
-    	time = System.currentTimeMillis();
+//    	time = System.currentTimeMillis();
     	output.write(CassandraDB.COLUMNFAMILY_ALLTRIPLES, null, allTValues);
 //		System.out.println("wrote all " + (System.currentTimeMillis() - time));
 //		System.out.println("write all " + (System.currentTimeMillis() - time));//    	_output.write(stepname, keys, variables);
-		time = System.currentTimeMillis();
+//		time = System.currentTimeMillis();
     	output.write(stepname, null, stepsValues);
 //		System.out.println("wrote steps" + (System.currentTimeMillis() - time));
 

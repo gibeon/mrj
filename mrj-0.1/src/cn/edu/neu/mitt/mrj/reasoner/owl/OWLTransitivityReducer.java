@@ -118,4 +118,12 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 		source.setDerivation(TripleSource.TRANSITIVE_ENABLED);
 		triple.setObjectLiteral(false);
 	}
+
+	@Override
+	protected void cleanup(
+			Reducer<BytesWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		_output.close();
+		super.cleanup(context);
+	}
 }

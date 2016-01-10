@@ -114,4 +114,13 @@ public class OWLAllSomeValuesReducer extends Reducer<BytesWritable, BytesWritabl
 		triple.setObjectLiteral(false);
 		triple.setPredicate(TriplesUtils.RDF_TYPE);
 	}
+
+	@Override
+	protected void cleanup(
+			Reducer<BytesWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		_output.close();
+		super.cleanup(context);
+	}
+	
 }

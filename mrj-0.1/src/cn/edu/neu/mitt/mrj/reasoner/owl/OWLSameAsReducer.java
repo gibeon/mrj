@@ -95,4 +95,12 @@ public class OWLSameAsReducer extends Reducer<LongWritable, BytesWritable, Map<S
 		oKey.setDerivation(TripleSource.OWL_DERIVED);
 		oKey.setStep(context.getConfiguration().getInt("reasoner.step", 0));
 	}
+
+	@Override
+	protected void cleanup(
+			Reducer<LongWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		_output.close();
+		super.cleanup(context);
+	}
 }

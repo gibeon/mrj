@@ -45,7 +45,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 		byte[] bytes = key.getBytes();
 		long rsubject=0, rpredicate=0, robject=0;
 		long key1=0, key2=0, value1 = 0;
-		
+				
 		switch(bytes[0]) {
 //		case 0: 
 //		case 1: //Functional and inverse functional property
@@ -58,6 +58,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 			long minimum = Long.MAX_VALUE;
 			set.clear();
 			Iterator<LongWritable> itr = values.iterator();
+
 			while (itr.hasNext()) {
 				long value = itr.next().get();
 				value1 = value;	// Added by Wugang���������ֵ������Functional������ԭʼ��Ԫ���object������Inverse Functional������ԭʼ��Ԫ���subject
@@ -119,7 +120,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 			triple.setRsubject(subject);
 			triple.setRobject(object);
 			triple.setType(TriplesUtils.OWL_HORST_3);
-			
+
 			itr = values.iterator();
 			while (itr.hasNext()) {
 				triple.setPredicate(itr.next().get());
@@ -147,7 +148,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 				triple.setRsubject(subject);
 				triple.setRobject(object);
 				triple.setRpredicate(predicate);
-				
+
 				/* I only output the last key of the inverse */
 				Collection<Long> inverse = schemaInverseOfProperties.get(predicate);
 				if (inverse != null) {
@@ -260,5 +261,13 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 			}
 		
 		}
+	}
+
+	@Override
+	protected void cleanup(
+			Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		_output.close();
+		super.cleanup(context);
 	}
 }

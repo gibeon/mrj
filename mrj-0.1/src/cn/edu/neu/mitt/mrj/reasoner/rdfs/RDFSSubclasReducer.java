@@ -2,9 +2,11 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,7 +46,11 @@ public class RDFSSubclasReducer
 	private TripleSource source = new TripleSource();
 	private Triple oTriple = new Triple();
 	private MultipleOutputs _output;
-
+	private Map<String, ByteBuffer> keys = 	new LinkedHashMap<String, ByteBuffer>();
+	private Map<String, ByteBuffer> allkeys = 	new LinkedHashMap<String, ByteBuffer>();
+	private List<ByteBuffer> allvariables =  new ArrayList<ByteBuffer>();
+	private List<ByteBuffer> allTValues =  new ArrayList<ByteBuffer>();
+	private List<ByteBuffer> stepsValues =  new ArrayList<ByteBuffer>();
 	private void recursiveScanSuperclasses(long value, Set<Long> set) {
 		Collection<Long> subclassValues = subclassSchemaTriples.get(value);
 		if (subclassValues != null) {
@@ -110,8 +116,8 @@ public class RDFSSubclasReducer
 			oTriple.setObject(oType);
 			for (long obj : existingURIs) {
 				oTriple.setRobject(obj);
-				CassandraDB.writeJustificationToMapReduceMultipleOutputs(
-						oTriple, source, _output, "step3");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output, keys, allkeys, stepsValues, allTValues,"step3");	
+
 				// context.write(source, oTriple);
 			}
 		}
@@ -131,8 +137,8 @@ public class RDFSSubclasReducer
 				oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 				oTriple.setRobject(TriplesUtils.RDFS_CONTAINER_MEMBERSHIP_PROPERTY);
 
-				CassandraDB.writeJustificationToMapReduceMultipleOutputs(
-						oTriple, source, _output, "step3");
+				CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output, keys, allkeys, stepsValues, allTValues,"step3");	
+
 				// context.write(source, oTriple);
 				context.getCounter("RDFS derived triples",
 						"subproperty of member").increment(1);
@@ -153,8 +159,8 @@ public class RDFSSubclasReducer
 					oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 					oTriple.setRobject(TriplesUtils.RDFS_DATATYPE);
 
-					CassandraDB.writeJustificationToMapReduceMultipleOutputs(
-							oTriple, source, _output, "step3");
+					CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output, keys, allkeys, stepsValues, allTValues,"step3");	
+
 					// context.write(source, oTriple);
 					context.getCounter("RDFS derived triples",
 							"subclass of Literal").increment(1);
@@ -176,8 +182,9 @@ public class RDFSSubclasReducer
 					oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 					oTriple.setRobject(TriplesUtils.RDFS_CLASS);
 
-					CassandraDB.writeJustificationToMapReduceMultipleOutputs(
-							oTriple, source, _output, "step3");
+					CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output,
+							keys, allkeys, stepsValues, allTValues,"step3");	
+
 					// context.write(source, oTriple);
 					context.getCounter("RDFS derived triples",
 							"subclass of resource").increment(1);

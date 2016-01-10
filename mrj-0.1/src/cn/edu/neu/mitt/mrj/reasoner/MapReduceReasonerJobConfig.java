@@ -188,6 +188,7 @@ public class MapReduceReasonerJobConfig {
 //        System.out.println("Schema we set: " + CassandraDB.getStepsSchema(step));
 //        System.out.println("Schema we get: " + CqlBulkOutputFormat.getColumnFamilySchema(job.getConfiguration(), "step"+step));
         CqlBulkOutputFormat.setColumnFamilyInsertStatement(job.getConfiguration(), "step"+step, CassandraDB.getStepsStatement(step));
+        CqlBulkOutputFormat.setDeleteSourceOnSuccess(job.getConfiguration(), true);
         
         ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
         ConfigHelper.setOutputPartitioner(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.partitioner);
@@ -211,6 +212,8 @@ public class MapReduceReasonerJobConfig {
 		Configuration conf = new Configuration();
 		conf.setInt("maptasks", numMapTasks);
 		conf.set("input.filter", typeFilters.toString());
+		
+		conf.set("mapreduce.output.bulkoutputformat.streamthrottlembits", "400");
 	
 		Job job = new Job(conf);
 		job.setJobName(jobName);

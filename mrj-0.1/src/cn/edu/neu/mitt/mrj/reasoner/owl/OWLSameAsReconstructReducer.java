@@ -92,4 +92,12 @@ public class OWLSameAsReconstructReducer extends Reducer<BytesWritable, BytesWri
         _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 	}
+
+	@Override
+	protected void cleanup(
+			Reducer<BytesWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		_output.close();
+		super.cleanup(context);
+	}
 }
