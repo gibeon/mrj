@@ -2,20 +2,9 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
-import org.apache.cassandra.hadoop.ColumnFamilyOutputFormat;
-import org.apache.cassandra.hadoop.ConfigHelper;
-import org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat;
-import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
-import org.apache.cassandra.hadoop.cql3.CqlOutputFormat;
-import org.apache.cassandra.thrift.InvalidRequestException;
-import org.apache.cassandra.thrift.SchemaDisagreementException;
-import org.apache.cassandra.thrift.TimedOutException;
-import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.BytesWritable;
@@ -24,15 +13,11 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
-import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.reasoner.MapReduceReasonerJobConfig;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
-//import org.apache.hadoop.mapred.lib.MultipleOutputs;
 
 public class RDFSReasoner extends Configured implements Tool {
 	
@@ -41,7 +26,7 @@ public class RDFSReasoner extends Configured implements Tool {
 	private int numReduceTasks = -1;
 	public static int step = 0;
 	private int lastExecutionPropInheritance = -1;
-	private int lastExecutionDomRange = -1; 
+	private int lastExecutionDomRange = -1;
 	
 
 	private void parseArgs(String[] args) {
@@ -84,25 +69,22 @@ public class RDFSReasoner extends Configured implements Tool {
 	
 	
 	// The derivation will be launched in run()
-	public long launchDerivation(String[] args) throws IOException, InterruptedException, ClassNotFoundException, InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException, TException {
+	public long launchDerivation(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
 
 		long time = System.currentTimeMillis();
+		
 		parseArgs(args);
 		Job job = null;
 		long derivation = 0;
-		
-		
+
 		// RDFS subproperty inheritance reasoning
 //		job = createNewJob("RDFS subproperty inheritance reasoning", "FILTER_ONLY_HIDDEN");
 		job = MapReduceReasonerJobConfig.createNewJob(
 				RDFSReasoner.class, 
 				"RDFS subproperty inheritance reasoning", 
 				new HashSet<Integer>(), 
-				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
-				step,							// not used here
 				numMapTasks, 
-				numReduceTasks, true, true, 1);
-
+				numReduceTasks, true, true);
 		job.setMapperClass(RDFSSubPropInheritMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
@@ -111,12 +93,10 @@ public class RDFSReasoner extends Configured implements Tool {
 		job.getConfiguration().setInt("lastExecution.step", lastExecutionPropInheritance);
 		lastExecutionPropInheritance = step;
 //TODO:		configureOutputJob(job, args[0], "dir-rdfs-derivation/dir-subprop-inherit");
-			
 		job.waitForCompletion(true);
 		long propInheritanceDerivation = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
 		derivation += propInheritanceDerivation;
 
-	
 		
 		// RDFS subproperty domain and range reasoning
 //		job = createNewJob("RDFS subproperty domain and range reasoning", "FILTER_ONLY_HIDDEN");
@@ -124,17 +104,14 @@ public class RDFSReasoner extends Configured implements Tool {
 				RDFSReasoner.class,
 				"RDFS subproperty domain and range reasoning", 
 				new HashSet<Integer>(),
-				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
-				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true, 2);
+				numReduceTasks, true, true);
 		job.setMapperClass(RDFSSubPropDomRangeMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);	// Modified by WuGang, 2010-08-26
 		job.setMapOutputValueClass(LongWritable.class);
 		//job.setPartitionerClass(MyHashPartitioner.class);	// Is this ok? seems not necessary
 		job.setReducerClass(RDFSSubpropDomRangeReducer.class);
 		job.getConfiguration().setInt("reasoner.step", ++step);
-
 		job.getConfiguration().setInt("lastExecution.step", lastExecutionDomRange);
 		lastExecutionDomRange = step;
 //TODO:		configureOutputJob(job, args[0], "dir-rdfs-derivation/dir-subprop-domain-range");
@@ -145,7 +122,7 @@ public class RDFSReasoner extends Configured implements Tool {
 		// RDFS cleaning up subprop duplicates
 		// We remove it for simplicity. That means we will not support stop and restart from breakpoints 
 		
-
+		
 
 	    //RDFS subclass reasoning
 //		job = createNewJob("RDFS subclass reasoning", "FILTER_ONLY_TYPE_SUBCLASS");
@@ -155,16 +132,13 @@ public class RDFSReasoner extends Configured implements Tool {
 				RDFSReasoner.class,
 				"RDFS subclass reasoning", 
 				filters,
-				new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
-				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true, 3);
+				numReduceTasks, true, true);
 		job.setMapperClass(RDFSSubclasMapper.class);
 		job.setMapOutputKeyClass(BytesWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
 		job.setReducerClass(RDFSSubclasReducer.class);
 		job.getConfiguration().setInt("reasoner.step", ++step);
-
 //		configureOutputJob(job, args[0], "dir-rdfs-output/dir-subclass-" + step);
 		job.waitForCompletion(true);
 		derivation += job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
@@ -189,16 +163,14 @@ public class RDFSReasoner extends Configured implements Tool {
 					RDFSReasoner.class,
 					"RDFS special properties reasoning", 
 					filters,
-					new HashSet<Integer>(), 		// Added by WuGang, 2015-07-13
-					step,							// not used here
 					numMapTasks,
-					numReduceTasks, true, true, 4);
+					numReduceTasks, true, true);
 			job.setMapperClass(RDFSSpecialPropsMapper.class);
 			job.setMapOutputKeyClass(BytesWritable.class);
 			job.setMapOutputValueClass(LongWritable.class);
 			job.setReducerClass(RDFSSpecialPropsReducer.class);
 			job.getConfiguration().setInt("reasoner.step", ++step);
-		
+
 //			configureOutputJob(job, args[0], "dir-rdfs-output/dir-special-props-" + step);
 		    job.waitForCompletion(true);
 		    derivation += job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter","REDUCE_OUTPUT_RECORDS").getValue();

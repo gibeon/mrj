@@ -12,6 +12,8 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 
 public class ReasonedJustificationsReducer extends Reducer<Text, IntWritable, Map<String, ByteBuffer>, List<ByteBuffer>>{
@@ -34,10 +36,8 @@ public class ReasonedJustificationsReducer extends Reducer<Text, IntWritable, Ma
 			
 			//prepare the insert variables collection
 			List<ByteBuffer> variables = new ArrayList<ByteBuffer>();
-			int var_inferredsteps = Integer.parseInt(value.toString());
-			variables.add(ByteBufferUtil.bytes(var_inferredsteps));
-			int var_transitivelevel = Integer.parseInt(splitkeys[9]);
-			variables.add(ByteBufferUtil.bytes(var_transitivelevel));
+			int var = Integer.parseInt(value.toString());
+			variables.add(ByteBufferUtil.bytes(var));
 			context.write(keys, variables);
 		}
 

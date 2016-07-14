@@ -10,7 +10,6 @@ import java.util.Map.Entry;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +18,6 @@ import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
-import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 
 public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>> {
 
@@ -32,7 +30,6 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 	
 	private int baseLevel = 0;
 	private int level = 0;
-	private MultipleOutputs _output;
 
 	public void reduce(BytesWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
 		
@@ -72,9 +69,9 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 		
 		triple.setPredicate(NumberUtils.decodeLong(key.getBytes(),0));
 		
-		// Added by WuGang,ï¿½ï¿½ï¿½extended tripleï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªu p w,ï¿½ï¿½ï¿½ï¿½wï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½resourceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½Ô­Ê¼ï¿½ï¿½ruleÇ°ï¿½ï¿½
+		// Added by WuGang,Õë¶Ôextended triple£¬ÉèÖÃÎªu p w,ÆäÖÐwÊÇÒ»¸ö¹Ø¼üµÄresource£¬ÓÃÓÚÖØ¹¹Ô­Ê¼µÄruleÇ°¼þ
 		triple.setType(TriplesUtils.OWL_HORST_4);
-//		triple.setRsubject(rsubject);	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½Î¼ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+//		triple.setRsubject(rsubject);	// Õâ¸öÊÇÒÀÀµÓÚÍÆÀí½á¹ûµÄ£¬Çë²Î¼ûÏÂÃæµÄ´úÂë
 		triple.setRpredicate(NumberUtils.decodeLong(key.getBytes(),0));
 		triple.setRobject(NumberUtils.decodeLong(key.getBytes(), 8));
 		
@@ -90,15 +87,13 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 					triple.setSubject(entry.getKey());
 					triple.setObject(entry2.getKey());
 					
-					// Added by Wugang, ï¿½ï¿½ï¿½extended tripleï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½rsubjectï¿½è²»ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½Î½ï¿½ï¿½ï¿½ï¿½Îªï¿½Ë±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã°ï¿½
-					triple.setRsubject(triple.getSubject());	// ï¿½ï¿½Îªï¿½ï¿½Ñ¡È¡u p wï¿½ï¿½Îªï¿½ï¿½ï¿½tripleï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½uï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Äºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+					// Added by Wugang, Õë¶Ôextended triple£¬Êµ¼ÊÉÏÕâ¸örsubjectÉè²»ÉèÖÃ¶¼ÎÞËùÎ½£¬µ«ÎªÁË±£³ÖÍêÕû»¹ÊÇÉèÖÃ°É
+					triple.setRsubject(triple.getSubject());	// ÒòÎªÊÇÑ¡È¡u p w×÷ÎªÏà¹Øtriple£¬Òò´ËÆäÖÐµÄu¾ÍÊÇ×îÖÕÍÆÀíµÄºó¼þµÄÖ÷Óï
 					
-					// Modified by WuGang, 2015-07-15
-					//source.setStep((int)(Math.abs(entry.getValue()) + Math.abs(entry2.getValue()) - baseLevel));
-					source.setTransitiveLevel((int)(Math.abs(entry.getValue()) + Math.abs(entry2.getValue()) - baseLevel));
+					source.setStep((int)(Math.abs(entry.getValue()) + Math.abs(entry2.getValue()) - baseLevel));
 					
 //					context.write(source, triple);
-					CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step6");
+					CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
 					
 //					System.out.println("In OWLTransitivityReducer: " + triple);
 				}
@@ -109,21 +104,12 @@ public class OWLTransitivityReducer extends Reducer<BytesWritable, BytesWritable
 	@Override
 	public void setup(Context context) {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
-        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
+
 		baseLevel = context.getConfiguration().getInt("reasoning.baseLevel", 1) - 1;
 		level = context.getConfiguration().getInt("reasoning.transitivityLevel", -1);
 		// Modified by WuGang 2015-01-28
 		//source.setDerivation(TripleSource.OWL_DERIVED);	
-		source.setStep(baseLevel + 1);		// Added by WuGang, 2015-07-15
 		source.setDerivation(TripleSource.TRANSITIVE_ENABLED);
 		triple.setObjectLiteral(false);
-	}
-
-	@Override
-	protected void cleanup(
-			Reducer<BytesWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
-			throws IOException, InterruptedException {
-		_output.close();
-		super.cleanup(context);
 	}
 }

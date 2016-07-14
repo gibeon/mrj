@@ -7,7 +7,6 @@ import java.util.Set;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,16 +57,15 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 			oKey.set(bKey, 0, 17);
 			oValue.set(pre);
 			context.write(oKey, oValue);
-//			System.out.println(" i " + i);
 		}
-				
+		
 		//Check suprop transitivity
 		if (pre == TriplesUtils.RDFS_SUBPROPERTY && subpropSchemaTriples.contains(obj)) {
 			//Write the 05 + subject
 			bKey[0] = 5;
 			NumberUtils.encodeLong(bKey, 1, sub);
 			oKey.set(bKey, 0, 9);
-			oValue.set(obj);
+			oValue.set(obj);			
 			context.write(oKey, oValue);
 		}
 	}
@@ -86,9 +84,7 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 				hasSchemaChanged = db.loadSetIntoMemory(subpropSchemaTriples, filters, previousExecutionStep);
 //				hasSchemaChanged = FilesTriplesReader.loadSetIntoMemory(subpropSchemaTriples, context, 
 //				"FILTER_ONLY_SUBPROP_SCHEMA", previousExecutionStep);
-//				System.out.println("AAA");
-//				db.createIndexOnInferredSteps();
-//				System.out.println("create on inferredsteps");
+				
 				db.CassandraDBClose();
 			} catch (TException e) {
 				e.printStackTrace();
@@ -96,8 +92,5 @@ public class RDFSSubPropInheritMapper extends Mapper<Long, Row, BytesWritable, L
 		} else {
 			log.debug("Subprop schema triples already loaded in memory");
 		}
-
-				
 	}
-	
 }

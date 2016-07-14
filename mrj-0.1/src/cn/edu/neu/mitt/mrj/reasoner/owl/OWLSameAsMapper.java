@@ -29,7 +29,7 @@ public class OWLSameAsMapper extends Mapper<Long, Row, LongWritable, BytesWritab
 		/* Source triple: s owl:sameAs o */
 		long olKey = 0;
 		long olValue = 0;
-		if (value.getSubject() > value.getObject()) {	//keyÔøΩÔøΩÔøΩÔøΩÔøΩ«¥ÔøΩ÷µÔøΩÔøΩvalueÔøΩÔøΩÔøΩÔøΩ–°÷µ
+		if (value.getSubject() > value.getObject()) {	//key¿Ô√Ê «¥Û÷µ£¨value¿Ô «–°÷µ
 			olKey = value.getSubject();
 			olValue = value.getObject();
 		} else {
@@ -37,21 +37,18 @@ public class OWLSameAsMapper extends Mapper<Long, Row, LongWritable, BytesWritab
 			olValue = value.getSubject();
 		}
 		
-		// ÔøΩÔøΩÔøΩÔøΩ–°ÔøΩ«∏ÔøΩ÷µÔøΩÔøΩ ∂√ø“ªÔøΩÔøΩÔøΩÔøΩ
+		// ”√◊Ó–°ƒ«∏ˆ÷µ±Í ∂√ø“ª∏ˆ◊È
 		
 		oKey.set(olKey);
 		bValue[0] = 0;
 		NumberUtils.encodeLong(bValue, 1, olValue);		
 		oValue.set(bValue, 0, bValue.length);
-		context.write(oKey, oValue);	//ÔøΩÔøΩÔøΩÔøΩkeyÔøΩ«¥ÔøΩ÷µÔøΩÔøΩvalueÔøΩÔøΩ–°÷µÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ‘µÔøΩ÷™√ø“ªÔøΩÔøΩresourceÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩƒ∏ÔøΩÔøΩÔøΩ
+		context.write(oKey, oValue);	//◊Ó÷’key «¥Û÷µ£¨value «–°÷µ£¨”√’‚∏ˆø…“‘µ√÷™√ø“ª∏ˆresource£¨ Ù”⁄ƒƒ∏ˆ◊È
 		
 		oKey.set(olValue);
 		bValue[0] = 1;
 		NumberUtils.encodeLong(bValue, 1, olKey);		
 		oValue.set(bValue, 0, bValue.length);
-		context.write(oKey, oValue);	//ÔøΩÔøΩÔøΩÔøΩkeyÔøΩÔøΩ–°÷µÔøΩÔøΩvalueÔøΩ«¥ÔøΩ÷µÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ‘µÔøΩ÷™√ø“ªÔøΩÔøΩÔøΩÔøΩÔøΩ–∞ÔøΩÔøΩÔøΩÔøΩÔøΩ–©resource
-	}
-	public void setup(Context context) throws IOException{
-
+		context.write(oKey, oValue);	//◊Ó÷’key «–°÷µ£¨value «¥Û÷µ£¨”√’‚∏ˆø…“‘µ√÷™√ø“ª∏ˆ◊È÷–∞¸∫¨ƒƒ–©resource
 	}
 }

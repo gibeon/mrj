@@ -105,7 +105,7 @@ public class OWLNotRecursiveMapper extends Mapper<Long, Row, BytesWritable, Long
 		previousTransDerivation = context.getConfiguration().getInt("reasoner.previosTransitiveDerivation", -1);
 		previousDerivation = context.getConfiguration().getInt("reasoner.previousDerivation", -1);
 		hasSchemaChanged = false;
-
+		
 		try{
 			CassandraDB db = new CassandraDB();
 	

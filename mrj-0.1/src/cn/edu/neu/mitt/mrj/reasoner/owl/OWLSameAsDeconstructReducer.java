@@ -10,7 +10,6 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 
 public class OWLSameAsDeconstructReducer extends Reducer<LongWritable, BytesWritable, LongWritable, BytesWritable> {
@@ -18,7 +17,7 @@ public class OWLSameAsDeconstructReducer extends Reducer<LongWritable, BytesWrit
 	private LongWritable oKey = new LongWritable();
 	private BytesWritable oValue = new BytesWritable();
 	
-	private byte[] bOriginalResource = new byte[8];	//ï¿½ï¿½Ò»ï¿½ï¿½Longï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ô­Ê¼ï¿½ï¿½ï¿½æ»»Ç°ï¿½ï¿½ï¿½ï¿½resource
+	private byte[] bOriginalResource = new byte[8];	//¶àÒ»¸öLongÓÃÓÚ´æ·ÅÔ­Ê¼£¨Ìæ»»Ç°£©µÄresource
 
 	
 	private List<byte[]> storage = new LinkedList<byte[]>();
@@ -39,9 +38,9 @@ public class OWLSameAsDeconstructReducer extends Reducer<LongWritable, BytesWrit
 			byte[] bValue = iValue.getBytes();
 //			System.out.println("In processing things before storage, size of iValue is: " + iValue.getLength());
 //			System.out.println("In processing things before storage, size of bValue is: " + bValue.length);
-			// ï¿½ï¿½ï¿½Ú²ï¿½Ò»ï¿½ï¿½ï¿½Úºï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½bValue[0]=4ï¿½ï¿½ï¿½Ç¸ï¿½keyï¿½ï¿½valueï¿½ï¿½
-			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®Ç°ï¿½È½ï¿½ï¿½ï¿½ï¿½æ»»ï¿½ï¿½resourceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½storageï¿½ï±£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Í¿ï¿½ï¿½ï¿½Ö±ï¿½Ó½ï¿½ï¿½ï¿½ï¿½æ»»ï¿½Ë£ï¿½ï¿½ï¿½valueï¿½æ»»
-			// ï¿½ï¿½ï¿½(ï¿½ï¿½ï¿½ï¿½ï¿½whileÑ­ï¿½ï¿½Ö®ï¿½ï¿½)ï¿½Ù°ï¿½storageï¿½ï¿½ï¿½æ±£ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½æ»»Ò»ï¿½Â¡ï¿½
+			// ÓÉÓÚ²»Ò»¶¨ÔÚºÎÊ±²ÅÄÜÓöµ½bValue[0]=4µÄÄÇ¸ökeyºÍvalue£¬
+			// Òò´ËÔÚÓöµ½Ö®Ç°ÏÈ½«´ýÌæ»»µÄresource¶¼·ÅÔÚstorageÀï±£´æÆðÀ´£¬¶øÒ»µ©Óöµ½ÁËÖ®ºó¾Í¿ÉÒÔÖ±½Ó½øÐÐÌæ»»ÁË£¬ÓÃvalueÌæ»»
+			// ×îºó(ÔÚÕâ¸öwhileÑ­»·Ö®Íâ)ÔÙ°ÑstorageÀïÃæ±£´æµÄÖµÖØÐÂÌæ»»Ò»ÏÂ¡£
 			if (bValue[0] == 4) {//Same as
 				long resource = NumberUtils.decodeLong(bValue, 1);
 				replacement = true;
@@ -55,14 +54,14 @@ public class OWLSameAsDeconstructReducer extends Reducer<LongWritable, BytesWrit
 				byte[] bTempValue = new byte[15+8];	// Added by WuGang
 				System.arraycopy(bValue, 0, bTempValue, 0, 15);	// Added by WuGang
 				System.arraycopy(bOriginalResource, 0, bTempValue, 15, 8);	// Added by WuGang
-				iValue.set(bTempValue, 0, bTempValue.length);	// Added by Wugang, ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ò»ï¿½ï¿½ï¿½æ»»Ç°ï¿½ï¿½resource
+				iValue.set(bTempValue, 0, bTempValue.length);	// Added by Wugang, ÔÚ×îºóÐ´ÈëÒ»¸öÌæ»»Ç°µÄresource
 				context.write(oKey, iValue);
 				countOutput++;
 				context.getCounter("reasoner", "substitutions").increment(1);
 			}
 		}
 		
-		Iterator<byte[]> itr2 = storage.iterator();	//ï¿½ï¿½ï¿½storageÎªï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½Ð¿ï¿½ï¿½ï¿½ï¿½ï¿½sameasï¿½ï¿½ï¿½æ»»ï¿½Ä¶ï¿½ï¿½ï¿½
+		Iterator<byte[]> itr2 = storage.iterator();	//Èç¹ûstorageÎª¿ÕÔòËµÃ÷£¬ÔÚÕâ¸ö»úÆ÷ÉÏÃ»ÓÐ¿ÉÒÔÓÃsameasÀ´Ìæ»»µÄ¶«Î÷
 		while (itr2.hasNext()) {
 			byte[] bValue = itr2.next();
 			oValue.set(bValue, 0, bValue.length);
@@ -71,19 +70,15 @@ public class OWLSameAsDeconstructReducer extends Reducer<LongWritable, BytesWrit
 //			System.out.println("In processing things in storage, size of bValue is: " + bValue.length);
 			System.arraycopy(bValue, 0, bTempValue, 0, 15);	// Added by WuGang
 			System.arraycopy(bOriginalResource, 0, bTempValue, 15, 8);	// Added by WuGang
-			oValue.set(bTempValue, 0, bTempValue.length);	// Added by Wugang, ï¿½ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ò»ï¿½ï¿½ï¿½æ»»Ç°ï¿½ï¿½resource
+			oValue.set(bTempValue, 0, bTempValue.length);	// Added by Wugang, ÔÚ×îºóÐ´ÈëÒ»¸öÌæ»»Ç°µÄresource
 			context.write(oKey, oValue);
 		}
 		
-		//ï¿½ï¿½ï¿½ï¿½ï¿½oKeyï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½sameasï¿½ï¿½ï¿½ï¿½ï¿½ï£¬ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶ï¿½ï¿½ï¿½ï¿½æ»»ï¿½ï¿½ï¿½Ë£ï¿½ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½sameasï¿½æ»»ï¿½ï¿½ï¿½ï¿½Ë£ï¿½
-		//ï¿½ï¿½ï¿½ï¿½ï¿½oVlaueï¿½ï¿½owl:sameasï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tripleId+key.getStep()+key.getDerivation()ï¿½ï¿½Ç°ï¿½æ»¹ï¿½ï¿½Ò»ï¿½ï¿½byte
+		//Êä³öµÄoKeyÊÇÒ»¸ö×ÊÔ´£¬¾ÍÊÇsameasµÄÖ÷Óï£¬ÆäËûµÄ¶¼±»Ìæ»»µôÁË£¨ÆäÊµ¾ÍÊÇÒÑ¾­¶¼±»sameasÌæ»»ºóµÄÁË£©
+		//Êä³öµÄoVlaueÊÇowl:sameasÈýÔª×éµÄÖ÷Óï£¬»òÕßÊÇtripleId+key.getStep()+key.getDerivation()£¬Ç°Ãæ»¹ÓÐÒ»¸öbyte
 		
 		if (replacement) { //Increment counter of replacements
 			context.getCounter("reasoner", "substitutions").increment(countOutput + storage.size());
 		}
-	}
-	public void setup(Context context) throws IOException, InterruptedException{
-		CassandraDB.setConfigLocation();
-
 	}
 }

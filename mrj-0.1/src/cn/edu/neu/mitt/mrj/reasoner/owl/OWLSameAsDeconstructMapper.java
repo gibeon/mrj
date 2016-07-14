@@ -17,9 +17,9 @@ import org.slf4j.LoggerFactory;
 import cn.edu.neu.mitt.mrj.utils.FileUtils;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
+
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
-import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 
 public class OWLSameAsDeconstructMapper extends Mapper<TripleSource, Triple, LongWritable, BytesWritable> {
 	
@@ -82,8 +82,8 @@ public class OWLSameAsDeconstructMapper extends Mapper<TripleSource, Triple, Lon
 			context.write(oKey, oValue);	
 			
 			
-			//ï¿½ï¿½ï¿½ï¿½ï¿½oKeyï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Î½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¿ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½sameasï¿½ï¿½ï¿½ÍµÄ»ï¿½ï¿½Ï¶ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï£¬ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ö±ï¿½ï¿½ï¿½Îªï¿½ï¿½Î½ï¿½ï¿½ï¿½ï¿½ï¿½Î£ï¿½
-			//ï¿½ï¿½ï¿½ï¿½ï¿½oVlaueï¿½ï¿½owl:sameasï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tripleId+key.getStep()+key.getDerivation()ï¿½ï¿½Ç°ï¿½æ»¹ï¿½ï¿½Ò»ï¿½ï¿½byte
+			//Êä³öµÄoKeyÊÇÒ»¸ö×ÊÔ´£¨Ö÷Î½±ö¶¼ÓÐ¿ÉÄÜ£¬¶ÔÓÚsameasÀàÐÍµÄ»°¿Ï¶¨ÊÇÒ»¸ö±öÓï£¬ÆäÓàµÄÒª·Ö±ð×÷ÎªÖ÷Î½±öÈý´Î£©
+			//Êä³öµÄoVlaueÊÇowl:sameasÈýÔª×éµÄÖ÷Óï£¬»òÕßÊÇtripleId+key.getStep()+key.getDerivation()£¬Ç°Ãæ»¹ÓÐÒ»¸öbyte
 
 			++tripleId;
 		}
@@ -92,7 +92,7 @@ public class OWLSameAsDeconstructMapper extends Mapper<TripleSource, Triple, Lon
 	@Override
 	public void setup(Context context) {
 		oValue = new BytesWritable(bValue);
-
+		
 		try {
 			String taskId = context.getConfiguration().get("mapred.task.id").substring(context.getConfiguration().get("mapred.task.id").indexOf("_m_") + 3);
 			taskId = taskId.replaceAll("_", "");

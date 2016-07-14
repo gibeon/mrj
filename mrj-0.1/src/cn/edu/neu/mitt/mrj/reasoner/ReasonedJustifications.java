@@ -1,22 +1,34 @@
 package cn.edu.neu.mitt.mrj.reasoner;
 
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.cassandra.hadoop.ColumnFamilyInputFormat;
 import org.apache.cassandra.hadoop.ConfigHelper;
 import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
 import org.apache.cassandra.hadoop.cql3.CqlInputFormat;
 import org.apache.cassandra.hadoop.cql3.CqlOutputFormat;
+import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import prejustification.SelectInferRows;
+import prejustification.SelectInferRowsMap;
+import prejustification.SelectInferRowsReduce;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.utils.Cassandraconf;
 
 public class ReasonedJustifications extends Configured implements Tool{
 	public int run(String[] args) throws Exception{	
@@ -25,7 +37,7 @@ public class ReasonedJustifications extends Configured implements Tool{
 	    
 		Job job = new Job(conf);
 		job.setJobName(" Test ");
-		job.setJarByClass(ReasonedJustifications.class);
+		job.setJarByClass(SelectInferRows.class);
 	    job.setNumReduceTasks(8);
 	    
         ConfigHelper.setInputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
@@ -36,13 +48,13 @@ public class ReasonedJustifications extends Configured implements Tool{
 	        		" WHERE TOKEN(" + 
 	        		CassandraDB.COLUMN_SUB + ", " + 
 	        		CassandraDB.COLUMN_PRE + ", " + 
-	        		CassandraDB.COLUMN_OBJ +  
-	        		//CassandraDB.COLUMN_IS_LITERAL +
+	        		CassandraDB.COLUMN_OBJ + ", " + 
+	        		CassandraDB.COLUMN_IS_LITERAL +
 	        		") > ? AND TOKEN(" + 
 	        		CassandraDB.COLUMN_SUB + ", " + 
 	        		CassandraDB.COLUMN_PRE + ", " + 
-					CassandraDB.COLUMN_OBJ +  
-	        		//CassandraDB.COLUMN_IS_LITERAL + 
+					CassandraDB.COLUMN_OBJ + ", " + 
+	        		CassandraDB.COLUMN_IS_LITERAL + 
 	        		") <= ? ALLOW FILTERING");
 	        CqlConfigHelper.setInputCQLPageRowSize(job.getConfiguration(), CassandraDB.CQL_PAGE_ROW_SIZE);
 	        //Modifide by LiYang  
@@ -56,7 +68,7 @@ public class ReasonedJustifications extends Configured implements Tool{
 
 	        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
 	        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + "resultrows" +
-	        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=?, " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "=?";
+	        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? ";
 	        CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
 	        
 		job.setMapperClass(ReasonedJustificationsMapper.class);

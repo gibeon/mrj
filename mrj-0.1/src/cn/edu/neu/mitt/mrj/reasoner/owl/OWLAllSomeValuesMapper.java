@@ -36,7 +36,7 @@ public class OWLAllSomeValuesMapper extends Mapper<Long, Row, BytesWritable, Byt
 	private byte[] bKey = new byte[17];
 	private BytesWritable oKey = new BytesWritable(bKey);
 	
-	// Modified by WuGangï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½â´«ï¿½ï¿½Ò»ï¿½ï¿½longï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,Ò»ï¿½ï¿½byteï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½someValues(0)ï¿½ï¿½ï¿½ï¿½allValues(1)
+	// Modified by WuGang£¬ĞèÒª¶îÍâ´«ËÍÒ»¸ölongÀ´´æ´¢Ïà¹ØĞÅÏ¢,Ò»¸öbyteÀ´¾ö¶¨ÊÇsomeValues(0)»¹ÊÇallValues(1)
 	private byte[] bValue = new byte[18]; //new byte[9];	
 	private BytesWritable oValue = new BytesWritable(bValue);
 	
@@ -57,45 +57,45 @@ public class OWLAllSomeValuesMapper extends Mapper<Long, Row, BytesWritable, Byt
 			//DEL
 //			log.info("And I met a triple with RDF_TYPE as predicate: " + value);
 		
-			// ï¿½ï¿½Òªï¿½ï¿½ï¿½â´«ï¿½ï¿½Ò»ï¿½ï¿½w
-			if (someValues.containsKey(value.getObject())) {	//ï¿½Òµï¿½ï¿½ï¿½Ò»ï¿½ï¿½(x,rdf:type,w)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½é£¬ï¿½ï¿½ï¿½ï¿½wï¿½ï¿½ï¿½ï¿½v owl:someValuesFrom w
+			// ĞèÒª¶îÍâ´«ËÍÒ»¸öw
+			if (someValues.containsKey(value.getObject())) {	//ÕÒµ½ÁËÒ»¸ö(x,rdf:type,w)ÕâÑùµÄÈıÔª×é£¬ÆäÖĞwÂú×ãv owl:someValuesFrom w
 				log.info("I met someValuesFrom: " + value);
 				Collection<byte[]> values = someValues.get(value.getObject());
 				Iterator<byte[]> itr = values.iterator();
 				bKey[0] = 2;
 				bValue[0] = 1;
-				bValue[17] = 0;	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½someValues
+				bValue[17] = 0;	// ±íÃ÷ÕâÊÇÒ»¸ösomeValues
 				NumberUtils.encodeLong(bKey, 9, value.getSubject());		
-				NumberUtils.encodeLong(bValue, 9, value.getObject());	//Added by WuGang, ï¿½ï¿½wĞ´ï¿½ï¿½valueï¿½ï¿½
+				NumberUtils.encodeLong(bValue, 9, value.getObject());	//Added by WuGang, ½«wĞ´ÈëvalueÖĞ
 				while (itr.hasNext()) {
 					byte[] bytes = itr.next();
 					System.arraycopy(bytes, 0, bKey, 1, 8);
 					System.arraycopy(bytes, 8, bValue, 1, 8);
-					context.write(oKey, oValue);	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½((p,x),v) -> ((p,x),(v,w,0))
+					context.write(oKey, oValue);	//Êä³öµÄÊÇ((p,x),v) -> ((p,x),(v,w,0))
 				}
 			}
 			
-			// ï¿½ï¿½Òªï¿½ï¿½ï¿½â´«ï¿½ï¿½Ò»ï¿½ï¿½v
-			if (allValues.containsKey(value.getObject())) {	//ï¿½Òµï¿½ï¿½ï¿½Ò»ï¿½ï¿½(w,rdf:type,v)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½é£¬ï¿½ï¿½ï¿½ï¿½vï¿½ï¿½ï¿½ï¿½v owl:allValuesFrom u
+			// ĞèÒª¶îÍâ´«ËÍÒ»¸öv
+			if (allValues.containsKey(value.getObject())) {	//ÕÒµ½ÁËÒ»¸ö(w,rdf:type,v)ÕâÑùµÄÈıÔª×é£¬ÆäÖĞvÂú×ãv owl:allValuesFrom u
 				log.info("I met allValuesFrom: " + value);
 				Collection<byte[]> values = allValues.get(value.getObject());
 				Iterator<byte[]> itr = values.iterator();
 				bKey[0] = 1;
 				bValue[0] = 1;
-				bValue[17] = 1;	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½allValues
+				bValue[17] = 1;	// ±íÃ÷ÕâÊÇÒ»¸öallValues
 				NumberUtils.encodeLong(bKey, 9, value.getSubject());	
-				NumberUtils.encodeLong(bValue, 9, value.getObject());	//Added by WuGang, ï¿½ï¿½vĞ´ï¿½ï¿½valueï¿½ï¿½
+				NumberUtils.encodeLong(bValue, 9, value.getObject());	//Added by WuGang, ½«vĞ´ÈëvalueÖĞ
 				while (itr.hasNext()) {
 					byte[] bytes = itr.next();
 					System.arraycopy(bytes, 0, bKey, 1, 8);
 					System.arraycopy(bytes, 8, bValue, 1, 8);
-					context.write(oKey, oValue);	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½((p,w),u) -> ((p,w),(u,v,1))
+					context.write(oKey, oValue);	//Êä³öµÄÊÇ((p,w),u) -> ((p,w),(u,v,1))
 				}
 			}
 
 		} else {
-			// onPropertySomeï¿½Ğ·ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½ï¿½ï¿½onPropertySomeï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½ v owl:someValuesFrom wï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½Ğµï¿½w
-			if (onPropertySome.contains(value.getPredicate())) {//Ä³Ò»ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½u p xï¿½Ğµï¿½pï¿½ï¿½Ò»ï¿½ï¿½onPropertySomeï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			// onPropertySomeÖĞ·ÅÖÃµÄÊÇËùÓĞµÄÊÇonPropertySomeÖĞÒıÓÃµÄÊôĞÔ£¬¼´¾ßÓĞµÄ v owl:someValuesFrom wĞÎÊ½µÄÈıÔª×éÖĞµÄw
+			if (onPropertySome.contains(value.getPredicate())) {//Ä³Ò»¸öÈıÔª×éu p xÖĞµÄpÊÇÒ»¸öonPropertySomeÖĞÒıÓÃµ½µÄÊôĞÔ
 				//Rule 15 - someValuesFrom
 				log.info("I met onPropertySome: " + value);
 				bKey[0] = 2;
@@ -103,19 +103,19 @@ public class OWLAllSomeValuesMapper extends Mapper<Long, Row, BytesWritable, Byt
 				NumberUtils.encodeLong(bKey, 1, value.getPredicate());
 				NumberUtils.encodeLong(bKey, 9, value.getObject());			
 				NumberUtils.encodeLong(bValue, 1, value.getSubject());
-				context.write(oKey, oValue);	//ï¿½ï¿½ï¿½ï¿½ï¿½((p,x),(u,,))	valueï¿½Äºï¿½ï¿½ï¿½ï¿½ï¿½fieldï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ,Ã»ï¿½Ğ¸ï¿½Öµ
+				context.write(oKey, oValue);	//Êä³öÊÇ((p,x),(u,,))	valueµÄºóÁ½¸öfieldÊÇÈÎÒâÖµ,Ã»ÓĞ¸³Öµ
 			}
 			
-			// onPropertyAllï¿½Ğ·ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½ï¿½ï¿½onPropertyAllï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½ v owl:allValuesFrom uï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½Ğµï¿½u
-			if (onPropertyAll.contains(value.getPredicate())) {//Ä³Ò»ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½w p xï¿½Ğµï¿½pï¿½ï¿½Ò»ï¿½ï¿½onPropertyAllï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			// onPropertyAllÖĞ·ÅÖÃµÄÊÇËùÓĞµÄÊÇonPropertyAllÖĞÒıÓÃµÄÊôĞÔ£¬¼´¾ßÓĞµÄ v owl:allValuesFrom uĞÎÊ½µÄÈıÔª×éÖĞµÄu
+			if (onPropertyAll.contains(value.getPredicate())) {//Ä³Ò»¸öÈıÔª×éw p xÖĞµÄpÊÇÒ»¸öonPropertyAllÖĞÒıÓÃµ½µÄÊôĞÔ
 				//Rule 16 - allValuesFrom
 				log.info("I met onPropertyAll: " + value);
 				bKey[0] = 1;
-				bValue[0] = 0;	// Added by WuGang, Ô­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½Ğ£ï¿½ï¿½ï¿½ï¿½Ğ¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½<w p x>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½reduceï¿½ï¿½ï¿½ï¿½ï¿½Ğ»ï¿½ï¿½ï¿½É´ï¿½ï¿½ï¿½
+				bValue[0] = 0;	// Added by WuGang, Ô­À´ÕâÀïÉÙÁËÕâÒ»ĞĞ£¬µ±ÓĞ¶à¸ö´ËÀàĞÍÈıÔª×éÊ±£¨¼´¶à¸ö<w p x>£©£¬ÔÚreduce¹ı³ÌÖĞ»áÔì³É´íÎó£¡
 				NumberUtils.encodeLong(bKey, 1, value.getPredicate());
 				NumberUtils.encodeLong(bKey, 9, value.getSubject());
 				NumberUtils.encodeLong(bValue, 1, value.getObject());
-				context.write(oKey, oValue);	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½((p,w),(x,,))	valueï¿½Äºï¿½ï¿½ï¿½ï¿½ï¿½fieldï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ,Ã»ï¿½Ğ¸ï¿½Öµ
+				context.write(oKey, oValue);	//Êä³öµÄÊÇ((p,w),(x,,))	valueµÄºóÁ½¸öfieldÊÇÈÎÒâÖµ,Ã»ÓĞ¸³Öµ
 			}
 		}
 	}
@@ -123,7 +123,7 @@ public class OWLAllSomeValuesMapper extends Mapper<Long, Row, BytesWritable, Byt
 	@Override
 	public void setup(Context context) throws IOException {
 		previousDerivation = context.getConfiguration().getInt("reasoner.previousDerivation", -1);
-
+		
 //		List<FileStatus> filesProperty =  MultiFilesReader.recursiveListStatus(context, "FILTER_ONLY_OWL_ON_PROPERTY");		
 //		Map<Long,Collection<Long>> allValuesTmp = FilesTriplesReader.loadMapIntoMemory("FILTER_ONLY_OWL_ALL_VALUES", context);
 //		Map<Long,Collection<Long>> someValuesTmp = FilesTriplesReader.loadMapIntoMemory("FILTER_ONLY_OWL_SOME_VALUES", context);
@@ -212,7 +212,7 @@ public class OWLAllSomeValuesMapper extends Mapper<Long, Row, BytesWritable, Byt
 				}
 				
 				if (allValuesTmp.containsKey(sub)) {
-					// colï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğµï¿½subjectï¿½ï¿½Ó¦ï¿½ï¿½objectï¿½ï¿½ï¿½ï¿½ï¿½ï¿½subjectï¿½ï¿½objectï¿½ï¿½ï¿½ï¿½subject, owl:allValuesFrom, object
+					// colÖĞÓ¦¸ÃÊÇËùÓĞµÄsubject¶ÔÓ¦µÄobject£¬ÆäÖĞsubjectºÍobjectÂú×ãsubject, owl:allValuesFrom, object
 					Collection<Long> col = allValuesTmp.get(sub);	
 					if (col != null) {
 						Iterator<Long> itr = col.iterator();

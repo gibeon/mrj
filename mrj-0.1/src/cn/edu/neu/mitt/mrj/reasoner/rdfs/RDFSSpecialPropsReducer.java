@@ -2,44 +2,29 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
-import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 
 public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>> {
 
 	private TripleSource source = new TripleSource();
 	private Triple oTriple = new Triple();
-	private MultipleOutputs _output;
-	private Map<String, ByteBuffer> keys = 	new LinkedHashMap<String, ByteBuffer>();
-	private Map<String, ByteBuffer> allkeys = 	new LinkedHashMap<String, ByteBuffer>();
-	private List<ByteBuffer> allvariables =  new ArrayList<ByteBuffer>();
-	private List<ByteBuffer> allTValues =  new ArrayList<ByteBuffer>();
-	private List<ByteBuffer> stepsValues =  new ArrayList<ByteBuffer>();
 
 	@Override
 	public void reduce(BytesWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
 		byte[] bKey = key.getBytes();
 		Iterator<LongWritable> itr = values.iterator();
-		
-        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
-
-		
 		while (itr.hasNext()) {
 			long value = itr.next().get();
 			if (value == TriplesUtils.RDFS_LITERAL && (bKey[0] == 0 || bKey[0] == 2))
@@ -69,7 +54,7 @@ public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable
 			oTriple.setRsubject(oTriple.getSubject());
 			oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 			oTriple.setRobject(TriplesUtils.RDFS_CONTAINER_MEMBERSHIP_PROPERTY);
-			CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output, keys, allkeys, stepsValues, allTValues,"step4");	
+			CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
 //			context.write(source, oTriple);
 			context.getCounter("RDFS derived triples", "subproperty of member").increment(1);
 			break;
@@ -84,7 +69,7 @@ public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable
 			oTriple.setRsubject(oTriple.getSubject());
 			oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 			oTriple.setRobject(TriplesUtils.RDFS_DATATYPE);
-			CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output, keys, allkeys, stepsValues, allTValues,"step4");	
+			CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
 //			context.write(source, oTriple);
 			context.getCounter("RDFS derived triples", "subclass of literal").increment(1);
 			break;
@@ -100,11 +85,11 @@ public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable
 			oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 			oTriple.setRobject(TriplesUtils.RDFS_CLASS);
 			context.getCounter("RDFS derived triples", "subclass of resource").increment(1);
-			CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output, keys, allkeys, stepsValues, allTValues,"step4");	
+			CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
 			//context.write(source, oTriple);
 			break;
-		case 4:	// Ã»ï¿½Ð¶ï¿½Ó¦ï¿½ï¿½rdfs ruleï¿½ï¿½
-		case 5:	// Ã»ï¿½Ð¶ï¿½Ó¦ï¿½ï¿½rdfs ruleï¿½ï¿½
+		case 4:	// Ã»ÓÐ¶ÔÓ¦µÄrdfs rule°¡
+		case 5:	// Ã»ÓÐ¶ÔÓ¦µÄrdfs rule°¡
 			oTriple.setSubject(NumberUtils.decodeLong(bKey, 1));
 			oTriple.setPredicate(TriplesUtils.RDFS_MEMBER);
 //			oTriple.setPredicate(NumberUtils.decodeLong(bKey, 9));
@@ -114,29 +99,18 @@ public class RDFSSpecialPropsReducer extends Reducer<BytesWritable, LongWritable
 			else
 				oTriple.setObjectLiteral(true);
 			context.getCounter("RDFS derived triples", "subproperty inheritance of member").increment(1);
-			CassandraDB.writeJustificationToMapReduceMultipleOutputsLessObjects(oTriple, source, _output, keys, allkeys, stepsValues, allTValues,"step4");	
+			CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
 //			context.write(source, oTriple);
 		default: 
 			break;
 		}
-		
-		_output.close();
-
 	}
 
 	@Override
 	public void setup(Context context) {		
-		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.		
+		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
 
 		source.setDerivation(TripleSource.RDFS_DERIVED);
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));
-
-	}
-
-	@Override
-	protected void cleanup(
-			Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
-			throws IOException, InterruptedException {
-		super.cleanup(context);
 	}
 }

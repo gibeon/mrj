@@ -2,7 +2,7 @@
  * Project Name: mrj-0.1
  * File Name: ImportTriplesReconstructReducerToCassandra.java
  * @author Gang Wu
- * 2014é”Ÿæ–¤æ‹·10é”Ÿæ–¤æ‹·28é”Ÿæ–¤æ‹· é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·10:35:24
+ * 2014Äê10ÔÂ28ÈÕ ÏÂÎç10:35:24
  * 
  * Description: 
  * Send reducer output to Cassandra DB by representing triples with ids
@@ -16,11 +16,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-import org.apache.cassandra.cli.CliParser.rowKey_return;
 import org.apache.cassandra.utils.ByteBufferUtil;
-import org.apache.cassandra.utils.UUIDGen;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.slf4j.Logger;
@@ -30,7 +27,6 @@ import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
-
 
 /**
  * @author gibeo_000
@@ -82,7 +78,7 @@ public class ImportTriplesReconstructReducerToCassandra extends
 		}
 		
 		if (counter != 3) {
-			// Modified by WuGang 2010-12-3, é”Ÿæ–¤æ‹·é”Ÿï¿½?é”Ÿæ–¤æ‹·3å…ƒé”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·éƒ‘é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿæ­îæ‹·é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿï¿½
+			// Modified by WuGang 2010-12-3, ÔÊĞí³¬¹ı3Ôª×é³öÏÖ£¬µ«ÊÇÒª±¨¾¯£¡
 			log.error("Found a non-triple when reconstructing. The count num is " + counter + ", and triple is " + oValue);
 //			throw new IOException("Triple is not reconstructed!");
 		}
@@ -93,22 +89,17 @@ public class ImportTriplesReconstructReducerToCassandra extends
     	byte one = 1;
     	byte zero = 0;
 
-    	/*
-        keys.put("sub", ByteBufferUtil.bytes(oValue.getSubject()));
-        keys.put("pre", ByteBufferUtil.bytes(oValue.getPredicate()));
-        keys.put("obj", ByteBufferUtil.bytes(oValue.getObject()));
-    	// the length of boolean type in cassandra is one byte!!!!!!!!
-        keys.put(CassandraDB.COLUMN_IS_LITERAL, oValue.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));
-        keys.put(CassandraDB.COLUMN_TRIPLE_TYPE, ByteBufferUtil.bytes(TriplesUtils.getTripleType(source, oValue.getSubject(), oValue.getPredicate(), oValue.getObject())));
-//		keys.put("id", ByteBufferUtil.bytes(UUIDGen.getTimeUUID()));
-		*/
-    	
+	    // Prepare composite key (sub, pre, obj)
         keys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(oValue.getSubject()));
         keys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(oValue.getPredicate()));
         keys.put(CassandraDB.COLUMN_OBJ, ByteBufferUtil.bytes(oValue.getObject()));
+    	// the length of boolean type in cassandra is one byte!!!!!!!!
         keys.put(CassandraDB.COLUMN_IS_LITERAL, oValue.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));
         keys.put(CassandraDB.COLUMN_TRIPLE_TYPE, ByteBufferUtil.bytes(TriplesUtils.getTripleType(source, oValue.getSubject(), oValue.getPredicate(), oValue.getObject())));
-
+        keys.put(CassandraDB.COLUMN_RULE, ByteBufferUtil.bytes(0));	// for original triple set 0 int
+        keys.put(CassandraDB.COLUMN_V1, ByteBufferUtil.bytes(0L));	// for original triple set 0 long
+        keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(0L));	// for original triple set 0 long
+        keys.put(CassandraDB.COLUMN_V3, ByteBufferUtil.bytes(0L));	// for original triple set 0 long
         
         // Prepare variables, here is a boolean value for CassandraDB.COLUMN_IS_LITERAL
     	List<ByteBuffer> variables =  new ArrayList<ByteBuffer>();
@@ -116,9 +107,7 @@ public class ImportTriplesReconstructReducerToCassandra extends
     	// the length of boolean type in cassandra is one byte!!!!!!!!
     	// For column inferred, init it as false i.e. zero
 //      variables.add(ByteBuffer.wrap(new byte[]{zero}));
-    	variables.add(oValue.isObjectLiteral()?ByteBuffer.wrap(new byte[]{one}):ByteBuffer.wrap(new byte[]{zero}));
-    	variables.add(ByteBufferUtil.bytes(TriplesUtils.getTripleType(source, oValue.getSubject(), oValue.getPredicate(), oValue.getObject())));
-
+    	variables.add(ByteBufferUtil.bytes(0));		// It corresponds to COLUMN_INFERRED_STEPS where steps = 0 means an original triple 
         context.write(keys, variables);
 	}
 

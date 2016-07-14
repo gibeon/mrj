@@ -16,7 +16,6 @@ import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -25,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
-import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
@@ -39,29 +37,27 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 	private Set<Long> set = new HashSet<Long>();
 	
 	protected Map<Long, Collection<Long>> schemaInverseOfProperties = null;
-	private MultipleOutputs _output;
-
+	
 	protected void reduce(BytesWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
 		byte[] bytes = key.getBytes();
 		long rsubject=0, rpredicate=0, robject=0;
 		long key1=0, key2=0, value1 = 0;
-				
+		
 		switch(bytes[0]) {
 //		case 0: 
 //		case 1: //Functional and inverse functional property
 		case 0:	// Modified by WuGang, Functional
 		case 1: // Modified by WuGang, Inverse Functional
 //			System.out.println("Processing Functional & Inverse Functional Property.");
-			key1 = NumberUtils.decodeLong(bytes, 1);	// ï¿½ï¿½ï¿½ï¿½Functionalï¿½ï¿½ï¿½ï¿½ï¿½ï¿½subjectï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Inverse Functionalï¿½ï¿½ï¿½ï¿½ï¿½ï¿½object
+			key1 = NumberUtils.decodeLong(bytes, 1);	// ¶ÔÓÚFunctional¶øÑÔÊÇsubject£¬¶ÔÓÚInverse Functional¶øÑÔÊÇobject
 			key2 = NumberUtils.decodeLong(bytes, 9);	// predicate
 			
 			long minimum = Long.MAX_VALUE;
 			set.clear();
 			Iterator<LongWritable> itr = values.iterator();
-
 			while (itr.hasNext()) {
 				long value = itr.next().get();
-				value1 = value;	// Added by Wugangï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Functionalï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô­Ê¼ï¿½ï¿½Ôªï¿½ï¿½ï¿½objectï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Inverse Functionalï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô­Ê¼ï¿½ï¿½Ôªï¿½ï¿½ï¿½subject
+				value1 = value;	// Added by Wugang£¬±£´æÕâ¸öÖµ£¬¶ÔÓÚFunctional¶øÑÔÊÇÔ­Ê¼ÈýÔª×éµÄobject£¬¶ÔÓÚInverse Functional¶øÑÔÊÇÔ­Ê¼ÈýÔª×éµÄsubject
 				if (value < minimum) {
 					if (minimum != Long.MAX_VALUE)
 						set.add(minimum);
@@ -101,7 +97,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 				triple.setObject(object);
 //				System.out.println("Find a derive in functional and inverse functional property!" + triple);
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step5");
+				CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
 				outputSize++;
 			}
 			context.getCounter("OWL derived triples", "functional and inverse functional property").increment(outputSize);
@@ -120,13 +116,13 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 			triple.setRsubject(subject);
 			triple.setRobject(object);
 			triple.setType(TriplesUtils.OWL_HORST_3);
-
+			
 			itr = values.iterator();
 			while (itr.hasNext()) {
 				triple.setPredicate(itr.next().get());
 				triple.setRpredicate(triple.getPredicate());	// Added by WuGang
 //				context.write(source, triple);
-				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step5");
+				CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
 				context.getCounter("OWL derived triples", "simmetric property").increment(1);
 			}
 						
@@ -148,7 +144,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 				triple.setRsubject(subject);
 				triple.setRobject(object);
 				triple.setRpredicate(predicate);
-
+				
 				/* I only output the last key of the inverse */
 				Collection<Long> inverse = schemaInverseOfProperties.get(predicate);
 				if (inverse != null) {
@@ -158,7 +154,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 					triple.setPredicate(derivedPredicate);		// Only one of the inverse, the others will be completed in outputInverseOf()
 					//triple.setPredicate(itrInverse.next());	// Commented by WuGang 2015-01-27 
 //					context.write(source, triple);
-					CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step5");
+					CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
 					context.getCounter("OWL derived triples", "inverse of").increment(1);
 					
 					// Moved to here by WuGang, 2015-01-27
@@ -175,7 +171,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 			break;
 		case 4:
 		case 5:
-			// ï¿½â²¿ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½inferTransitivityStatementsï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½Ø£ï¿½ï¿½Ë´ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½
+			// Õâ²¿·ÖÊÇ·ñÊÇÔÚinferTransitivityStatementsÖÐ´¦ÀíµÄÄØ£¿´Ë´¦ÎÒÃ»´¦Àí
 			//Transitive property. I copy to a temporary directory setting a special triple source
 			subject = NumberUtils.decodeLong(bytes, 1);
 			object = NumberUtils.decodeLong(bytes, 9);
@@ -195,7 +191,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 					transitiveSource.setDerivation(TripleSource.TRANSITIVE_ENABLED);
 				triple.setPredicate(Math.abs(predicate));
 //				context.write(transitiveSource, triple);
-				CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, transitiveSource, _output, "step5");
+				CassandraDB.writeJustificationToMapReduceContext(triple, transitiveSource, context);
 				context.getCounter("OWL derived triples", "transitive property input").increment(1);
 			}
 		default:
@@ -217,7 +213,7 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 					triple.setObject(subject);				
 					triple.setPredicate(inverseOf);
 //					context.write(source, triple);
-					CassandraDB.writeJustificationToMapReduceMultipleOutputs(triple, source, _output, "step5");
+					CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
 					context.getCounter("OWL derived triples", "inverse of").increment(1);
 					outputInverseOf(object, subject, inverseOf, alreadyDerived, context);
 				}
@@ -228,7 +224,6 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 	@Override
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
-        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
 
 		source.setDerivation(TripleSource.OWL_DERIVED);
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));
@@ -261,13 +256,5 @@ public class OWLNotRecursiveReducer extends Reducer<BytesWritable, LongWritable,
 			}
 		
 		}
-	}
-
-	@Override
-	protected void cleanup(
-			Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
-			throws IOException, InterruptedException {
-		_output.close();
-		super.cleanup(context);
 	}
 }

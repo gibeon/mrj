@@ -8,10 +8,8 @@ import java.util.Map;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.hadoop.mapreduce.lib.output.MultipleOutputs;
 
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
-import cn.edu.neu.mitt.mrj.io.dbs.MrjMultioutput;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 import cn.edu.neu.mitt.mrj.data.Triple;
@@ -21,8 +19,7 @@ public class OWLSameAsReconstructReducer extends Reducer<BytesWritable, BytesWri
 
 	private TripleSource oKey = new TripleSource();
 	private Triple oValue = new Triple();
-	private MultipleOutputs _output;
-
+	
 	@Override
 	public void reduce(BytesWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
 //		System.out.println("In OWLSameAsReconstructReducer!!!");
@@ -31,31 +28,31 @@ public class OWLSameAsReconstructReducer extends Reducer<BytesWritable, BytesWri
 		oKey.setDerivation(bKey[12]);
 		
 		int elements = 0;
-		Iterator<BytesWritable> itr = values.iterator();	////ï¿½ï¿½ï¿½ï¿½ï¿½1ï¿½Ö½Ú¿ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½owlsameasï¿½ï¿½ï¿½ï¿½ï¿½ï£¬ï¿½ï¿½0ï¿½Ö½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ»»ï¿½ï¿½Î»ï¿½Ã£ï¿½ï¿½ï¿½ï¿½Üµï¿½Öµï¿½ï¿½0,1,2,3,4ï¿½ï¿½4ï¿½Ç±ï¿½Ê¾Î½ï¿½ï¿½ï¿½ï¿½owl:sameasï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½owl:sameasï¿½ï¿½ï¿½ï¿½ï¿½ï¿½0ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï£¬1ï¿½ï¿½Ê¾Î½ï¿½ï£¬2ï¿½ï¿½3ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï£©
+		Iterator<BytesWritable> itr = values.iterator();	////ÕâÀï´Ó1×Ö½Ú¿ªÊ¼¾ÍÊÇowlsameasµÄÖ÷Óï£¬¶ø0×Ö½Ú±ä³ÉÁËÓÃÓÚ±íÃ÷´ýÌæ»»µÄÎ»ÖÃ£¨¿ÉÄÜµÄÖµÊÇ0,1,2,3,4£¬4ÊÇ±íÊ¾Î½ÓïÊÇowl:sameas£¬ÆäÓàÎª·Çowl:sameas£¬ÆäÖÐ0±íÊ¾Ö÷Óï£¬1±íÊ¾Î½Óï£¬2ºÍ3±íÊ¾±öÓï£©
 		while (itr.hasNext()) {
 			elements++;
 			byte[] bValue = itr.next().getBytes();
-			long resource = NumberUtils.decodeLong(bValue, 1);	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½owlsameasï¿½ï¿½ï¿½ï¿½ï¿½ï£¬ï¿½ï¿½ï¿½æ½«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ»»ï¿½ï¿½
-			long originalResource = NumberUtils.decodeLong(bValue, 9);	// Added by Wugang, ï¿½ï¿½ï¿½ï¿½ï¿½æ»»Ç°ï¿½ï¿½resource
+			long resource = NumberUtils.decodeLong(bValue, 1);	//Õâ¸ö¾ÍÊÇowlsameasµÄÖ÷Óï£¬ÏÂÃæ½«ÓÃËü½øÐÐÌæ»»ÁË
+			long originalResource = NumberUtils.decodeLong(bValue, 9);	// Added by Wugang, ¶Á³öÌæ»»Ç°µÄresource
 			switch (bValue[0]) {
 				case 0:
-					oValue.setSubject(resource);	//ï¿½æ»»ï¿½ï¿½ï¿½ï¿½
-					oValue.setRsubject(originalResource);	// Added by Wugang, Ô­Ê¼ï¿½ï¿½ï¿½ï¿½
+					oValue.setSubject(resource);	//Ìæ»»Ö÷Óï
+					oValue.setRsubject(originalResource);	// Added by Wugang, Ô­Ê¼Ö÷Óï
 //					System.out.println("Replacing subject: "  + resource);
 					break;
 				case 1:
-					oValue.setPredicate(resource);	//ï¿½æ»»Î½ï¿½ï¿½
-					oValue.setRpredicate(originalResource);	// Added by Wugang, Ô­Ê¼Î½ï¿½ï¿½
+					oValue.setPredicate(resource);	//Ìæ»»Î½Óï
+					oValue.setRpredicate(originalResource);	// Added by Wugang, Ô­Ê¼Î½Óï
 //					System.out.println("Replacing predicate: "  + resource);
 					break;
-				case 2:								//ï¿½æ»»ï¿½ï¿½ï¿½ï¿½
-				case 3:								//ï¿½æ»»ï¿½ï¿½ï¿½ï¿½
+				case 2:								//Ìæ»»±öÓï
+				case 3:								//Ìæ»»±öÓï
 					if (bValue[0] == 2)
 						oValue.setObjectLiteral(false);
 					else
 						oValue.setObjectLiteral(true);
 					oValue.setObject(resource);			
-					oValue.setRobject(originalResource);	// Added by Wugang, Ô­Ê¼ï¿½ï¿½ï¿½ï¿½
+					oValue.setRobject(originalResource);	// Added by Wugang, Ô­Ê¼±öÓï
 //					System.out.println("Replacing object: "  + resource);
 					break;
 				default:
@@ -64,24 +61,24 @@ public class OWLSameAsReconstructReducer extends Reducer<BytesWritable, BytesWri
 		}
 		
 		if (elements == 3){
-			// Added by WuGang, ï¿½ï¿½ï¿½rule11
+			// Added by WuGang, Õë¶Ôrule11
 //			oValue.setRsubject(rsubject)
 			if ((oValue.getSubject() == oValue.getRsubject())
 					&& (oValue.getPredicate() == oValue.getRpredicate())
 					&& (oValue.getObject() == oValue.getRobject()))
-				oValue.setType(TriplesUtils.OWL_HORST_NA); // ï¿½æ»»Ç°ï¿½ï¿½Ã»ï¿½Ð±ä»¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½sameasrule
+				oValue.setType(TriplesUtils.OWL_HORST_NA); // Ìæ»»Ç°ºóÃ»ÓÐ±ä»¯£¬Ôò²»ÊÇÒ»¸ösameasrule
 			else {
 
 				if ((oValue.getPredicate() == TriplesUtils.OWL_SAME_AS)
 						&& (oValue.getRpredicate() == TriplesUtils.OWL_SAME_AS))
-					oValue.setType(TriplesUtils.OWL_HORST_7); // Ó¦ï¿½ï¿½OWL Horstï¿½ï¿½ï¿½ï¿½7
+					oValue.setType(TriplesUtils.OWL_HORST_7); // Ó¦ÓÃOWL Horst¹æÔò7
 				else
-					oValue.setType(TriplesUtils.OWL_HORST_11); // Ó¦ï¿½ï¿½OWL
-																// Horstï¿½ï¿½ï¿½ï¿½11
+					oValue.setType(TriplesUtils.OWL_HORST_11); // Ó¦ÓÃOWL
+																// Horst¹æÔò11
 			}
 			
 //			System.out.println("Find a complete replacment of triple: " + oValue);
-			CassandraDB.writeJustificationToMapReduceMultipleOutputs(oValue, oKey, _output, "step10");
+			CassandraDB.writeJustificationToMapReduceContext(oValue, oKey, context);
 //			context.write(oKey, oValue);
 		}
 	}
@@ -89,15 +86,5 @@ public class OWLSameAsReconstructReducer extends Reducer<BytesWritable, BytesWri
 	@Override
 	public void setup(Context context) throws IOException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
-        _output = new MrjMultioutput<Map<String, ByteBuffer>, List<ByteBuffer>>(context);
-
-	}
-
-	@Override
-	protected void cleanup(
-			Reducer<BytesWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
-			throws IOException, InterruptedException {
-		_output.close();
-		super.cleanup(context);
 	}
 }

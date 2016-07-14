@@ -101,7 +101,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 	
 	public void sampleCommonResources(String[] args) throws Exception {
-//		System.out.println("ï¿½ï¿½sampleCommonResourcesï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½");
+//		System.out.println("ÔÚsampleCommonResourcesÈÎÎñÖÐ¡£");
 		Job job = createNewJob("Sample common resources");
 		
 	    //Input
@@ -127,7 +127,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 	
 	public void assignIdsToNodes(String[] args) throws Exception {
-//		System.out.println("ï¿½ï¿½assignIdsToNodesï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½");
+//		System.out.println("ÔÚassignIdsToNodesÈÎÎñÖÐ¡£");
 		
 		Job job = createNewJob("Deconstruct statements");
 		job.getConfiguration().setInt("mapred.job.reuse.jvm.num.tasks", -1);
@@ -156,7 +156,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 
 	private void rewriteTriples(String[] args) throws Exception {
-//		System.out.println("ï¿½ï¿½rewriteTriplesï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½");
+//		System.out.println("ÔÚrewriteTriplesÈÎÎñÖÐ¡£");
 		
 		Job job = createNewJob("Reconstruct statements");
 
@@ -184,12 +184,13 @@ public class FilesImportTriples extends Configured implements Tool {
         job.setOutputValueClass(List.class);
         job.setOutputFormatClass(CqlOutputFormat.class);
 
-        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_ALLTRIPLES);
+        ConfigHelper.setOutputColumnFamily(job.getConfiguration(), CassandraDB.KEYSPACE, CassandraDB.COLUMNFAMILY_JUSTIFICATIONS);
         
         // is it useful below line?
         //job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
-        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_ALLTRIPLES +
-        		" SET " + CassandraDB.COLUMN_IS_LITERAL + "=? ,"+ CassandraDB.COLUMN_TRIPLE_TYPE + "=?" +  ","+ CassandraDB.COLUMN_INFERRED_STEPS + "=0";		
+        String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
+        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? ";
+
 	    
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
         ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
@@ -222,21 +223,13 @@ public class FilesImportTriples extends Configured implements Tool {
 		long time = System.currentTimeMillis();
 		int res = ToolRunner.run(new Configuration(), new FilesImportTriples(), args);
 //		log.info("Import time: " + (System.currentTimeMillis() - time));
-//		
-//		//Modified by LiYang	2015/4/10
-//		CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
-//		db.init();
-//		// Modified
-//		db.createIndexOnTripleType();
-//		//db.createIndexOnRule();
-//
-//		/*
-//		 * Add by LiYang
-//		 * 2015.7.19
-//		 */
-//		//db.createIndexOnInferredSteps();
-//		//db.createIndexOnTransitiveLevel();
-//		db.CassandraDBClose();
+		
+		//Modified by LiYang	2015/4/10
+		CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
+		db.init();
+		db.createIndexOnTripleType();
+		db.createIndexOnRule();
+		db.CassandraDBClose();
 		
 		System.out.println("Import time: " + (System.currentTimeMillis() - time));
 		System.exit(res);

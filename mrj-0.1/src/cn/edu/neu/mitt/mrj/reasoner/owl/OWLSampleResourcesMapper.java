@@ -45,7 +45,6 @@ public class OWLSampleResourcesMapper extends Mapper<Long, Row, LongWritable, Lo
 	}
 	
 	public void setup(Context context) {
-
 		threshold = context.getConfiguration().getInt("reasoner.samplingPercentage", 0);
 	}
 }

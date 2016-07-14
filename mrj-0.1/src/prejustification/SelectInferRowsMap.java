@@ -1,4 +1,5 @@
-package cn.edu.neu.mitt.mrj.reasoner;
+package prejustification;
+import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -6,60 +7,57 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.cassandra.utils.ByteBufferUtil;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.Mapper.Context;
 
-import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
+
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
 
-public class ReasonedJustificationsMapper extends Mapper<Long, Row, Text, IntWritable>{
+
+
+public class SelectInferRowsMap extends Mapper<ByteBuffer, Row, Map<String, ByteBuffer>, ByteBuffer> {
 	private Cluster cluster;
 	private Session session;
-	//**
-	public void map(Long keys, Row rows, Context context) throws IOException, InterruptedException{
+
+	
+	public void map(ByteBuffer key, Row row, Context context) throws IOException, InterruptedException{
+		SimpleStatement statement = new SimpleStatement("SELECT * FROM mrjks.justifications");
+		statement.setFetchSize(100);
+		ResultSet results = session.execute(statement);
 		
-//		SimpleStatement statement = new SimpleStatement("SELECT * FROM mrjks.justifications");
-//		statement.setFetchSize(100);
-//		ResultSet results = session.execute(statement);
-		
-		Integer inferredsteps;
-	//	for (Row rows : row){
+		System.out.println("---------MAP----------");
+		Map<String, ByteBuffer> keys = new HashMap<>();
+		ByteBuffer inferredsteps;
+		for (Row rows : results){
 			if (rows.getInt(CassandraDB.COLUMN_RULE) != 0) {
-				
-				String conKey;
-				//*****
-				conKey = rows.getLong(CassandraDB.COLUMN_SUB)	//≤ª π”√ByteBufferUtil£ø
-						+ "-" + rows.getLong(CassandraDB.COLUMN_PRE)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_OBJ)
-						+ "-" + rows.getBool(CassandraDB.COLUMN_IS_LITERAL)
-						+ "-" + rows.getInt(CassandraDB.COLUMN_TRIPLE_TYPE)
-						+ "-" + rows.getInt(CassandraDB.COLUMN_RULE)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_V1)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_V2)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_V3);
-				inferredsteps = rows.getInt(CassandraDB.COLUMN_INFERRED_STEPS);
-				
-				context.write(new Text(conKey), new IntWritable(inferredsteps));
+				keys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_SUB)));
+				keys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_PRE)));
+				keys.put(CassandraDB.COLUMN_OBJ, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_SUB)));
+				keys.put(CassandraDB.COLUMN_IS_LITERAL, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_IS_LITERAL)));
+				keys.put(CassandraDB.COLUMN_TRIPLE_TYPE, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_TRIPLE_TYPE)));
+				keys.put(CassandraDB.COLUMN_RULE, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_RULE)));
+				keys.put(CassandraDB.COLUMN_V1, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_V1)));
+				keys.put(CassandraDB.COLUMN_V2, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_V2)));
+				keys.put(CassandraDB.COLUMN_V3, ByteBufferUtil.bytes(rows.getLong(CassandraDB.COLUMN_V3)));
+				inferredsteps = ByteBufferUtil.bytes(rows.getInt(CassandraDB.COLUMN_INFERRED_STEPS));
+				context.write(keys, inferredsteps);
 			}
-		//}
-		
+		}
 	}
 	
-	public void setup(Context context) throws IOException, InterruptedException{	
+	public void setup(Context context) throws IOException, InterruptedException{
+		
 		cluster = Cluster.builder().addContactPoint(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host).build();
 		Metadata metadata = cluster.getMetadata();
 		System.out.printf("-------Connected to cluster: %s\n", metadata.getClusterName());
 		session = cluster.connect();
 		
-        String cquery1 = "CREATE TABLE IF NOT EXISTS " + CassandraDB.KEYSPACE + "."  + "resultrows" + 
+        String cquery1 = "CREATE TABLE IF NOT EXISTS " + CassandraDB.KEYSPACE + "."  + "ruleiszero" + 
                 " ( " + 
                 CassandraDB.COLUMN_SUB + " bigint, " +			// partition key
                 CassandraDB.COLUMN_PRE + " bigint, " +			// partition key
@@ -76,4 +74,6 @@ public class ReasonedJustificationsMapper extends Mapper<Long, Row, Text, IntWri
                 " ) ) ";
         session.execute(cquery1);
 	}
+	
+	
 }
