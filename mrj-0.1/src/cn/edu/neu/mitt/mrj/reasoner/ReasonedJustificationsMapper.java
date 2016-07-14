@@ -5,6 +5,8 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.cassandra.thrift.Compression;
+import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -25,29 +27,27 @@ public class ReasonedJustificationsMapper extends Mapper<Long, Row, Text, IntWri
 	private Session session;
 	//**
 	public void map(Long keys, Row rows, Context context) throws IOException, InterruptedException{
-		
-//		SimpleStatement statement = new SimpleStatement("SELECT * FROM mrjks.justifications");
-//		statement.setFetchSize(100);
-//		ResultSet results = session.execute(statement);
-		
+			
 		Integer inferredsteps;
+		Integer transitivelevel;
 	//	for (Row rows : row){
 			if (rows.getInt(CassandraDB.COLUMN_RULE) != 0) {
 				
 				String conKey;
 				//*****
-				conKey = rows.getLong(CassandraDB.COLUMN_SUB)	//²»Ê¹ÓÃByteBufferUtil£¿
-						+ "-" + rows.getLong(CassandraDB.COLUMN_PRE)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_OBJ)
-						+ "-" + rows.getBool(CassandraDB.COLUMN_IS_LITERAL)
-						+ "-" + rows.getInt(CassandraDB.COLUMN_TRIPLE_TYPE)
-						+ "-" + rows.getInt(CassandraDB.COLUMN_RULE)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_V1)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_V2)
-						+ "-" + rows.getLong(CassandraDB.COLUMN_V3);
-				inferredsteps = rows.getInt(CassandraDB.COLUMN_INFERRED_STEPS);
+				conKey = rows.getLong(CassandraDB.COLUMN_SUB)	//ï¿½ï¿½Ê¹ï¿½ï¿½ByteBufferUtilï¿½ï¿½
+						+ "_" + rows.getLong(CassandraDB.COLUMN_PRE)
+						+ "_" + rows.getLong(CassandraDB.COLUMN_OBJ)
+						+ "_" + rows.getBool(CassandraDB.COLUMN_IS_LITERAL)
+						+ "_" + rows.getInt(CassandraDB.COLUMN_TRIPLE_TYPE)
+						+ "_" + rows.getInt(CassandraDB.COLUMN_RULE)
+						+ "_" + rows.getLong(CassandraDB.COLUMN_V1)
+						+ "_" + rows.getLong(CassandraDB.COLUMN_V2)
+						+ "_" + rows.getLong(CassandraDB.COLUMN_V3)
+						+ "_" + rows.getInt(CassandraDB.COLUMN_INFERRED_STEPS);			// Modified by WuGang, 2015-07-15
+				transitivelevel = rows.getInt(CassandraDB.COLUMN_TRANSITIVE_LEVELS);	// Added by WuGang, 2015-07-15
 				
-				context.write(new Text(conKey), new IntWritable(inferredsteps));
+				context.write(new Text(conKey), new IntWritable(transitivelevel));
 			}
 		//}
 		
@@ -58,22 +58,34 @@ public class ReasonedJustificationsMapper extends Mapper<Long, Row, Text, IntWri
 		Metadata metadata = cluster.getMetadata();
 		System.out.printf("-------Connected to cluster: %s\n", metadata.getClusterName());
 		session = cluster.connect();
-		
-        String cquery1 = "CREATE TABLE IF NOT EXISTS " + CassandraDB.KEYSPACE + "."  + "resultrows" + 
+
+        String query = "CREATE TABLE IF NOT EXISTS " + CassandraDB.KEYSPACE + "."  + "resultrows" + 
                 " ( " + 
+                CassandraDB.COLUMN_IS_LITERAL + " boolean, " +	// partition key 
+                CassandraDB.COLUMN_RULE + " int, " +
                 CassandraDB.COLUMN_SUB + " bigint, " +			// partition key
+                CassandraDB.COLUMN_TRIPLE_TYPE + " int, " +
                 CassandraDB.COLUMN_PRE + " bigint, " +			// partition key
                 CassandraDB.COLUMN_OBJ + " bigint, " +			// partition key
-                CassandraDB.COLUMN_IS_LITERAL + " boolean, " +	// partition key
-                CassandraDB.COLUMN_TRIPLE_TYPE + " int, " +
-                CassandraDB.COLUMN_RULE + " int, " +
                 CassandraDB.COLUMN_V1 + " bigint, " +
                 CassandraDB.COLUMN_V2 + " bigint, " +
-                CassandraDB. COLUMN_V3 + " bigint, " +
+                CassandraDB.COLUMN_V3 + " bigint, " +
 				CassandraDB.COLUMN_INFERRED_STEPS + " int, " +		// this is the only field that is not included in the primary key
-                "   PRIMARY KEY ((" + CassandraDB.COLUMN_SUB + ", " + CassandraDB.COLUMN_PRE + ", " + CassandraDB.COLUMN_OBJ +  ", " + CassandraDB.COLUMN_IS_LITERAL + "), " +
-                CassandraDB.COLUMN_TRIPLE_TYPE + ", " + CassandraDB.COLUMN_RULE + ", " + CassandraDB.COLUMN_V1 + ", " + CassandraDB.COLUMN_V2 + ", " +  CassandraDB.COLUMN_V3 +  
+				CassandraDB.COLUMN_TRANSITIVE_LEVELS + " int, " +
+                "   PRIMARY KEY ((" + CassandraDB.COLUMN_IS_LITERAL + ", " + CassandraDB.COLUMN_RULE + ", " + CassandraDB.COLUMN_SUB  + "), " +
+                CassandraDB.COLUMN_TRIPLE_TYPE + ", " + CassandraDB.COLUMN_PRE + ", " + CassandraDB.COLUMN_OBJ + ", " + CassandraDB.COLUMN_V1 + ", " + CassandraDB.COLUMN_V2 + ", " +  CassandraDB.COLUMN_V3 +
+                //", " + COLUMN_TRIPLE_TYPE +
                 " ) ) ";
-        session.execute(cquery1);
+
+//        session.execute(query);
+//		query = "CREATE INDEX on mrjks.resultrows (sub) ;";
+//		session.execute(query);
+//		query = "CREATE INDEX on mrjks.resultrows (obj) ;";
+//		session.execute(query);
+//		query = "CREATE INDEX on mrjks.resultrows (pre) ;";
+//		session.execute(query);
+//		query = "CREATE INDEX on mrjks.resultrows (isliteral) ;";
+//		session.execute(query);
+
 	}
 }

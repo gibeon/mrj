@@ -8,6 +8,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 
 public class OWLSameAsReconstructMapper extends Mapper<LongWritable, BytesWritable, BytesWritable, BytesWritable> {
@@ -17,25 +18,26 @@ public class OWLSameAsReconstructMapper extends Mapper<LongWritable, BytesWritab
 	private BytesWritable oKey = new BytesWritable();
 	private BytesWritable oValue = new BytesWritable();
 //	private byte[] bValue = new byte[9];
-	private byte[] bValue = new byte[9+8];	//¶àÒ»¸öLong£¬ÓÃÓÚ±£´æÌæ»»Ç°µÄresource
+	private byte[] bValue = new byte[9+8];	//ï¿½ï¿½Ò»ï¿½ï¿½Longï¿½ï¿½ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½æ»»Ç°ï¿½ï¿½resource
 
 	public void map(LongWritable key, BytesWritable value, Context context) throws IOException, InterruptedException {
-		oKey.set(value.getBytes(), 1, 13);	//ÊÇowl:sameasÈýÔª×éµÄÖ÷Óï£¬»òÕßÊÇtripleId+key.getStep()+key.getDerivation()
-		bValue[0] = value.getBytes()[0];	//¿ÉÄÜµÄÖµÊÇ0,1,2,3,4£¬4ÊÇ±íÊ¾Î½ÓïÊÇowl:sameas£¬ÆäÓàÎª·Çowl:sameas£¬ÆäÖÐ0±íÊ¾Ö÷Óï£¬1±íÊ¾Î½Óï£¬2ºÍ3±íÊ¾±öÓï
+		oKey.set(value.getBytes(), 1, 13);	//ï¿½ï¿½owl:sameasï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½tripleId+key.getStep()+key.getDerivation()
+		bValue[0] = value.getBytes()[0];	//ï¿½ï¿½ï¿½Üµï¿½Öµï¿½ï¿½0,1,2,3,4ï¿½ï¿½4ï¿½Ç±ï¿½Ê¾Î½ï¿½ï¿½ï¿½ï¿½owl:sameasï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½owl:sameasï¿½ï¿½ï¿½ï¿½ï¿½ï¿½0ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï£¬1ï¿½ï¿½Ê¾Î½ï¿½ï£¬2ï¿½ï¿½3ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½
 		
-		long resource = NumberUtils.decodeLong(value.getBytes(), 15);	// Added by Wugang, ´ÓvalueÖÐ»ñµÃÎ´Ìæ»»Ç°µÄresource£¬µÚ14¸öbyteÈÓµô
+		long resource = NumberUtils.decodeLong(value.getBytes(), 15);	// Added by Wugang, ï¿½ï¿½valueï¿½Ð»ï¿½ï¿½Î´ï¿½æ»»Ç°ï¿½ï¿½resourceï¿½ï¿½ï¿½ï¿½14ï¿½ï¿½byteï¿½Óµï¿½
 		
-		NumberUtils.encodeLong(bValue, 1, key.get());	//ÕâÀï´Ó1×Ö½Ú¿ªÊ¼¾ÍÊÇowlsameasµÄÖ÷Óï£¬¶ø0×Ö½Ú±ä³ÉÁËÓÃÓÚ±íÃ÷´ýÌæ»»µÄÎ»ÖÃ£¨¿ÉÄÜµÄÖµÊÇ0,1,2,3,4£¬4ÊÇ±íÊ¾Î½ÓïÊÇowl:sameas£¬ÆäÓàÎª·Çowl:sameas£¬ÆäÖÐ0±íÊ¾Ö÷Óï£¬1±íÊ¾Î½Óï£¬2ºÍ3±íÊ¾±öÓï£©
+		NumberUtils.encodeLong(bValue, 1, key.get());	//ï¿½ï¿½ï¿½ï¿½ï¿½1ï¿½Ö½Ú¿ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½owlsameasï¿½ï¿½ï¿½ï¿½ï¿½ï£¬ï¿½ï¿½0ï¿½Ö½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ»»ï¿½ï¿½Î»ï¿½Ã£ï¿½ï¿½ï¿½ï¿½Üµï¿½Öµï¿½ï¿½0,1,2,3,4ï¿½ï¿½4ï¿½Ç±ï¿½Ê¾Î½ï¿½ï¿½ï¿½ï¿½owl:sameasï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½owl:sameasï¿½ï¿½ï¿½ï¿½ï¿½ï¿½0ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï£¬1ï¿½ï¿½Ê¾Î½ï¿½ï£¬2ï¿½ï¿½3ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï£©
 		
-		NumberUtils.encodeLong(bValue, 9, resource);	// Added by Wugang, Ð´ÈëÌæ»»Ç°µÄresourceµ½oValueÖÐ
+		NumberUtils.encodeLong(bValue, 9, resource);	// Added by Wugang, Ð´ï¿½ï¿½ï¿½æ»»Ç°ï¿½ï¿½resourceï¿½ï¿½oValueï¿½ï¿½
 		
-		// Êµ¼ÊÉÏÊÇ×öÁË¸ö£¬keyºÍvalueµÄ½»»»£¬ÒòÎªÖ®Ç°valueÖÐ±£´æµÄÊÇÈýÔª×éµÄid£¬½»»»ºó¾Í¿ÉÒÔ×÷ÎªkeyÁË
-		// ÕâÑù¾Í¿ÉÒÔÔÚreduce¹ý³ÌÖÐµÃµ½¹ØÓÚÒ»¸öÈýÔª×é£¨ÓÃkeyÖÐµÄid±êÊ¶£©µÄÍêÈ«Ìæ»»ºóµÄÐÂÈýÔª×éÁË
+		// Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë¸ï¿½ï¿½ï¿½keyï¿½ï¿½valueï¿½Ä½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÎªÖ®Ç°valueï¿½Ð±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½idï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ï¿½ï¿½Îªkeyï¿½ï¿½
+		// ï¿½ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ï¿½ï¿½reduceï¿½ï¿½ï¿½ï¿½ï¿½ÐµÃµï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ôªï¿½é£¨ï¿½ï¿½keyï¿½Ðµï¿½idï¿½ï¿½Ê¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È«ï¿½æ»»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½
 		context.write(oKey, oValue);
 	}
 	
 	@Override
 	public void setup(Context context) {
+
 		oValue = new BytesWritable(bValue);
 	}
 }

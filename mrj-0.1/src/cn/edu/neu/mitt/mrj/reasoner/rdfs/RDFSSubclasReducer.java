@@ -2,9 +2,11 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,10 +29,13 @@ import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.utils.NumberUtils;
 import cn.edu.neu.mitt.mrj.utils.TriplesUtils;
 
-public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>> {
-	
-	protected static Logger log = LoggerFactory.getLogger(RDFSSubclasReducer.class);
-	
+public class RDFSSubclasReducer
+		extends
+		Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>> {
+
+	protected static Logger log = LoggerFactory
+			.getLogger(RDFSSubclasReducer.class);
+
 	public static Map<Long, Collection<Long>> subclassSchemaTriples = null;
 	protected Set<Long> subclasURIs = new HashSet<Long>();
 	protected Set<Long> existingURIs = new HashSet<Long>();
@@ -38,7 +43,11 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 	protected Set<Long> specialSuperclasses = new HashSet<Long>();
 	private TripleSource source = new TripleSource();
 	private Triple oTriple = new Triple();
-	
+	private Map<String, ByteBuffer> keys = 	new LinkedHashMap<String, ByteBuffer>();
+	private Map<String, ByteBuffer> allkeys = 	new LinkedHashMap<String, ByteBuffer>();
+	private List<ByteBuffer> allvariables =  new ArrayList<ByteBuffer>();
+	private List<ByteBuffer> allTValues =  new ArrayList<ByteBuffer>();
+	private List<ByteBuffer> stepsValues =  new ArrayList<ByteBuffer>();
 	private void recursiveScanSuperclasses(long value, Set<Long> set) {
 		Collection<Long> subclassValues = subclassSchemaTriples.get(value);
 		if (subclassValues != null) {
@@ -54,65 +63,69 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 	}
 
 	@Override
-	public void reduce(BytesWritable key, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
-//		System.out.println("½øÈëRDFSSubclasReducerÖÐ-");
+	public void reduce(BytesWritable key, Iterable<LongWritable> values,
+			Context context) throws IOException, InterruptedException {
+		// System.out.println("ï¿½ï¿½ï¿½ï¿½RDFSSubclasReducerï¿½ï¿½-");
 
 		existingURIs.clear();
 
 		Iterator<LongWritable> itr = values.iterator();
 		while (itr.hasNext()) {
 			long value = itr.next().get();
-			existingURIs.add(value);	//ËùÓÐµÄ±öÓï
+			existingURIs.add(value); // ï¿½ï¿½ï¿½ÐµÄ±ï¿½ï¿½ï¿½
 		}
-		
+
 		Iterator<Long> oTypes = existingURIs.iterator();
 		subclasURIs.clear();
 		while (oTypes.hasNext()) {
 			long existingURI = oTypes.next();
-			recursiveScanSuperclasses(existingURI, subclasURIs);	//subclasURIsÊÇËùÓÐµÄsubclass
+			recursiveScanSuperclasses(existingURI, subclasURIs); // subclasURIsï¿½ï¿½ï¿½ï¿½ï¿½Ðµï¿½subclass
 		}
-		
+
 		subclasURIs.removeAll(existingURIs);
-		
+
 		oTypes = subclasURIs.iterator();
 		byte[] bKey = key.getBytes();
-		long oKey = NumberUtils.decodeLong(bKey,1);
+		long oKey = NumberUtils.decodeLong(bKey, 1);
 		oTriple.setSubject(oKey);
 		boolean typeTriple = bKey[0] == 0;
-		if (!typeTriple) { //It's a subclass triple
-			oTriple.setPredicate(TriplesUtils.RDFS_SUBCLASS);	// Rule 11
+		if (!typeTriple) { // It's a subclass triple
+			oTriple.setPredicate(TriplesUtils.RDFS_SUBCLASS); // Rule 11
 			// Added by WuGang, 2010-08-26
 			oTriple.setType(TriplesUtils.RDFS_11);
 			oTriple.setRsubject(oTriple.getSubject());
 			oTriple.setRpredicate(TriplesUtils.RDFS_SUBCLASS);
-		} else { //It's a type triple
-			oTriple.setPredicate(TriplesUtils.RDF_TYPE);		// Rule 9
+		} else { // It's a type triple
+			oTriple.setPredicate(TriplesUtils.RDF_TYPE); // Rule 9
 			// Added by WuGang, 2010-08-26
 			oTriple.setType(TriplesUtils.RDFS_9);
 			oTriple.setRsubject(oTriple.getSubject());
 			oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 		}
-//		while (oTypes.hasNext()) {
-//			long oType = oTypes.next();
-//			oTriple.setObject(oType);
-//			context.write(source, oTriple);
-//		}
+		// while (oTypes.hasNext()) {
+		// long oType = oTypes.next();
+		// oTriple.setObject(oType);
+		// context.write(source, oTriple);
+		// }
 		// Modified by WuGang, 2010-08-26
 		while (oTypes.hasNext()) {
 			long oType = oTypes.next();
 			oTriple.setObject(oType);
 			for (long obj : existingURIs) {
 				oTriple.setRobject(obj);
-				CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
-//				context.write(source, oTriple);
+				context.getCounter("RDFS derived triples", "subproperty of member").increment(1);
+				CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context); 		
+				// context.write(source, oTriple);
 			}
-		}		
-		
+		}
+
 		if (typeTriple) {
 			/* Check special rules */
-			if ((subclasURIs.contains(TriplesUtils.RDFS_CONTAINER_MEMBERSHIP_PROPERTY) 
-					|| existingURIs.contains(TriplesUtils.RDFS_CONTAINER_MEMBERSHIP_PROPERTY)) 
-					&& !memberProperties.contains(oTriple.getSubject())) {	// Rule 12£¬²Î¼ûRDFSSpecialPropsReducer
+			if ((subclasURIs
+					.contains(TriplesUtils.RDFS_CONTAINER_MEMBERSHIP_PROPERTY) || existingURIs
+					.contains(TriplesUtils.RDFS_CONTAINER_MEMBERSHIP_PROPERTY))
+					&& !memberProperties.contains(oTriple.getSubject())) { // Rule
+																			// 12ï¿½ï¿½ï¿½Î¼ï¿½RDFSSpecialPropsReducer
 				oTriple.setPredicate(TriplesUtils.RDFS_SUBPROPERTY);
 				oTriple.setObject(TriplesUtils.RDFS_MEMBER);
 				// Added by WuGang, 2010-08-26
@@ -121,16 +134,21 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 				oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 				oTriple.setRobject(TriplesUtils.RDFS_CONTAINER_MEMBERSHIP_PROPERTY);
 
-				CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
-//				context.write(source, oTriple);
 				context.getCounter("RDFS derived triples", "subproperty of member").increment(1);
+				CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context); 		
+
+				// context.write(source, oTriple);
+				context.getCounter("RDFS derived triples",
+						"subproperty of member").increment(1);
 			}
-	
+
 			if (subclasURIs.contains(TriplesUtils.RDFS_DATATYPE)
 					|| existingURIs.contains(TriplesUtils.RDFS_DATATYPE)) {
 				specialSuperclasses.clear();
-				recursiveScanSuperclasses(oTriple.getSubject(), specialSuperclasses);
-				if (!specialSuperclasses.contains(TriplesUtils.RDFS_LITERAL)) {	// Rule 13£¬²Î¼ûRDFSSpecialPropsReducer
+				recursiveScanSuperclasses(oTriple.getSubject(),
+						specialSuperclasses);
+				if (!specialSuperclasses.contains(TriplesUtils.RDFS_LITERAL)) { // Rule
+																				// 13ï¿½ï¿½ï¿½Î¼ï¿½RDFSSpecialPropsReducer
 					oTriple.setPredicate(TriplesUtils.RDFS_SUBCLASS);
 					oTriple.setObject(TriplesUtils.RDFS_LITERAL);
 					// Added by WuGang, 2010-08-26
@@ -139,17 +157,21 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 					oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 					oTriple.setRobject(TriplesUtils.RDFS_DATATYPE);
 
-					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
-//					context.write(source, oTriple);
-					context.getCounter("RDFS derived triples", "subclass of Literal").increment(1);
+					context.getCounter("RDFS derived triples", "subproperty of member").increment(1);
+					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context); 		
+					// context.write(source, oTriple);
+					context.getCounter("RDFS derived triples",
+							"subclass of Literal").increment(1);
 				}
 			}
-			
+
 			if (subclasURIs.contains(TriplesUtils.RDFS_CLASS)
 					|| existingURIs.contains(TriplesUtils.RDFS_CLASS)) {
 				specialSuperclasses.clear();
-				recursiveScanSuperclasses(oTriple.getSubject(), specialSuperclasses);
-				if (!specialSuperclasses.contains(TriplesUtils.RDFS_RESOURCE)) {	// Rule 8£¬²Î¼ûRDFSSpecialPropsReducer
+				recursiveScanSuperclasses(oTriple.getSubject(),
+						specialSuperclasses);
+				if (!specialSuperclasses.contains(TriplesUtils.RDFS_RESOURCE)) { // Rule
+																					// 8ï¿½ï¿½ï¿½Î¼ï¿½RDFSSpecialPropsReducer
 					oTriple.setPredicate(TriplesUtils.RDFS_SUBCLASS);
 					oTriple.setObject(TriplesUtils.RDFS_RESOURCE);
 					// Added by WuGang, 2010-08-26
@@ -158,23 +180,28 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 					oTriple.setRpredicate(TriplesUtils.RDF_TYPE);
 					oTriple.setRobject(TriplesUtils.RDFS_CLASS);
 
-					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);	
-//					context.write(source, oTriple);
-					context.getCounter("RDFS derived triples", "subclass of resource").increment(1);
+					context.getCounter("RDFS derived triples", "subproperty of member").increment(1);
+					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context); 		
+					// context.write(source, oTriple);
+					context.getCounter("RDFS derived triples",
+							"subclass of resource").increment(1);
 				}
 			}
 		}
-		
-		//Update the counters
+
+		// Update the counters
 		if (typeTriple)
-			context.getCounter("RDFS derived triples", "subclass inheritance rule").increment(subclasURIs.size());
+			context.getCounter("RDFS derived triples",
+					"subclass inheritance rule").increment(subclasURIs.size());
 		else
-			context.getCounter("RDFS derived triples", "subclass transitivity rule").increment(subclasURIs.size());
+			context.getCounter("RDFS derived triples",
+					"subclass transitivity rule").increment(subclasURIs.size());
 	}
-	
+
 	@Override
 	public void setup(Context context) throws IOException {
-		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
+		CassandraDB.setConfigLocation(); // 2014-12-11, Very strange, this works
+											// around.
 
 		if (subclassSchemaTriples == null) {
 			CassandraDB db;
@@ -198,17 +225,17 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 				e.printStackTrace();
 			}
 		}
-		
+
 		if (memberProperties == null) {
 			CassandraDB db;
 			try {
 				db = new CassandraDB();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_MEMBER_SUBPROPERTY);
-				
+
 				memberProperties = new HashSet<Long>();
 				db.loadSetIntoMemory(memberProperties, filters, -1);
-				
+
 				db.CassandraDBClose();
 			} catch (TTransportException e) {
 				e.printStackTrace();
@@ -222,10 +249,19 @@ public class RDFSSubclasReducer extends Reducer<BytesWritable, LongWritable, Map
 				e.printStackTrace();
 			} catch (TException e) {
 				e.printStackTrace();
-			}			
+			}
 		}
 
 		source.setDerivation(TripleSource.RDFS_DERIVED);
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));
+
+	}
+
+	@Override
+	protected void cleanup(
+			Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		
+		super.cleanup(context);
 	}
 }

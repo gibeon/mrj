@@ -68,7 +68,7 @@ public class ImportTriplesDeconstructReducer extends Reducer<Text, LongWritable,
 	protected void setup(Context context) throws IOException, InterruptedException {
 		CassandraDB.setConfigLocation();	// 2014-12-11, Very strange, this works around.
 		try {
-			db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
+			db = new CassandraDB();
 			db.init();
 		} catch (InvalidRequestException e) {
 			e.printStackTrace();

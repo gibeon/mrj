@@ -1,9 +1,18 @@
 package cn.edu.neu.mitt.mrj.reasoner.owl;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.cassandra.hadoop.ConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlConfigHelper;
+import org.apache.cassandra.hadoop.cql3.CqlOutputFormat;
+import org.apache.cassandra.thrift.InvalidRequestException;
+import org.apache.cassandra.thrift.SchemaDisagreementException;
+import org.apache.cassandra.thrift.TimedOutException;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -17,9 +26,11 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.db.DBAppender;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 import cn.edu.neu.mitt.mrj.io.files.readers.FilesTriplesReader;
 import cn.edu.neu.mitt.mrj.partitioners.MyHashPartitioner;
@@ -49,7 +60,7 @@ public class OWLReasoner extends Configured implements Tool {
 	public static final String OWL_ALL_VALUE_TMP = "/dir-tmp-all-some-values/";
 	public static final String OWL_HAS_VALUE_TMP = "/dir-tmp-has-value/";
 
-	private CassandraDB db;
+	public CassandraDB db;
 	
 	private int numMapTasks = -1;
 	private int numReduceTasks = -1;
@@ -101,10 +112,12 @@ public class OWLReasoner extends Configured implements Tool {
 		
 		try {
 			OWLReasoner owlreasoner = new OWLReasoner();
-			owlreasoner.db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
-			owlreasoner.db.init();
+//			owlreasoner.db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
+//			owlreasoner.db.init();
 			
 			ToolRunner.run(new Configuration(), owlreasoner, args);
+			
+//			owlreasoner.db.CassandraDBClose();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -124,12 +137,16 @@ public class OWLReasoner extends Configured implements Tool {
 		
 		//Modified 2015/6/28
 		try {
-			db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
-			db.init();
+			db = new CassandraDB();
+//			db.init();  // 这不要init() 否则会出现 TTransportException: java.net.SocketException: 断开的管道
+			/*
+			 * getRowCountAccordingInferredSteps 类似的函数中出错。
+			 * 具体原因不确定，可能跟client使用有关。
+			 */
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		
 		do {
 			if (!firstCycle && lastDerivationStep == (currentStep - 4))
@@ -204,8 +221,10 @@ public class OWLReasoner extends Configured implements Tool {
 				OWLReasoner.class,
 				"OWL reasoner: infer properties inherited statements (not recursive), step " + step, 
 				new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
+				new HashSet<Integer>(),		// not supported
+				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true);		
+				numReduceTasks, true, true, 5);		
 		job.getConfiguration().setInt("reasoner.step", step);
 		job.getConfiguration().setInt("reasoner.previosTransitiveDerivation", previousTransitiveDerivation);
 		job.getConfiguration().setInt("reasoner.previousDerivation", previousInferPropertiesDerivation);
@@ -215,7 +234,7 @@ public class OWLReasoner extends Configured implements Tool {
 		job.setMapOutputKeyClass(BytesWritable.class);
 		job.setMapOutputValueClass(LongWritable.class);
 		job.setReducerClass(OWLNotRecursiveReducer.class);
-		
+
 		job.waitForCompletion(true);
 		
 		
@@ -249,19 +268,42 @@ public class OWLReasoner extends Configured implements Tool {
 		int level = 0;
 		
 		//modified 2015/5/19
-		long beforeInferCount = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE);
+		long beforeInferCount = db.getRowCountAccordingTripleTypeWithLimitation(TriplesUtils.TRANSITIVE_TRIPLE, 1);
 		
 		while ((beforeInferCount > 0) && derivedNewStatements && shouldInferTransitivity) {
 //			System.out.println("��ʼ��inferTransitivityStatements��whileѭ����Ѱ�ҡ�");
 			level++;
 
+			Set<Integer> levels = new HashSet<Integer>();
+			levels.add(new Integer(level-1));
+			if (level > 1)
+				levels.add(new Integer(level-2));
+			
 			//Configure input. Take only the directories that are two levels below
-			Job job = MapReduceReasonerJobConfig.createNewJob(
-					OWLReasoner.class,
-					"OWL reasoner: transitivity rule. Level " + level, 
-					new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
-					numMapTasks,
-					numReduceTasks, true, true);		
+			Job job = null;
+			
+			// for the first two level, we use the whole data in the database
+			if (level <= 2)	
+				job = MapReduceReasonerJobConfig.createNewJob(
+						OWLReasoner.class,
+						"OWL reasoner: transitivity rule. Level " + level, 
+						new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
+						new HashSet<Integer>(),
+						0,
+						numMapTasks,
+						numReduceTasks, true, true, 6);		
+			// for the level more than two, we only consider the last two level derived data in the current step
+			if (level > 2)
+				job = MapReduceReasonerJobConfig.createNewJob(
+						OWLReasoner.class,
+						"OWL reasoner: transitivity rule. Level " + level, 
+						new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
+						levels,
+						step,
+						numMapTasks,
+						numReduceTasks, true, true ,7);	
+			
+			
 			job.getConfiguration().setInt("reasoning.baseLevel", step);
 			job.getConfiguration().setInt("reasoning.transitivityLevel", level);
 		    job.getConfiguration().setInt("maptasks", Math.max(numMapTasks / 10, 1));
@@ -272,15 +314,32 @@ public class OWLReasoner extends Configured implements Tool {
 			job.setReducerClass(OWLTransitivityReducer.class);
 			
 			job.waitForCompletion(true);
-
-			// About duplication, we will modify the checkTransitivity to return transitive triple counts
-			// and then do subtraction.
-
-			long afterInferCount = db.getRowCountAccordingTripleType(TriplesUtils.TRANSITIVE_TRIPLE);
-			derivation = afterInferCount - beforeInferCount;
-			derivedNewStatements = (derivation > 0);
-			beforeInferCount = afterInferCount;		// Update beforeInferCount
-			//System.out.println(" loop ");
+			long stepNotFilteredDerivation = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter","REDUCE_OUTPUT_RECORDS").getValue();
+			
+			long stepDerivation = 0;
+			if (stepNotFilteredDerivation > 0) {
+				try {
+					db.createIndexOnInferredSteps();
+				} catch (InvalidRequestException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (UnavailableException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TimedOutException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (SchemaDisagreementException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				stepDerivation = db.getRowCountAccordingInferredSteps(level);
+			}
+			derivation += stepDerivation;
+			derivedNewStatements = stepDerivation > 0;
 		}
 		
 		previousTransitiveDerivation = step;
@@ -296,7 +355,7 @@ public class OWLReasoner extends Configured implements Tool {
 		try {
 			boolean derivedSynonyms = true;
 			int derivationStep = 1;
-			long previousStepDerived = 0; 	// Added by WuGang 2015-01-30
+//			long previousStepDerived = 0; 	// Added by WuGang 2015-01-30
 			
 			while (derivedSynonyms) {
 				if (db.getRowCountAccordingTripleType(TriplesUtils.DATA_TRIPLE_SAME_AS)==0)	// We need not to infer on SameAs
@@ -308,23 +367,26 @@ public class OWLReasoner extends Configured implements Tool {
 						OWLReasoner.class,
 						"OWL reasoner: build the synonyms table from same as triples - step " + derivationStep++, 
 						filters,		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
+						new HashSet<Integer>(), 		// Added by WuGang, 2015-07-12
+						step,							// not used here
 						numMapTasks,
-						numReduceTasks, true, true);		
+						numReduceTasks, true, true, 8);		
 			    
 				job.setMapperClass(OWLSameAsMapper.class);
 				job.setMapOutputKeyClass(LongWritable.class);
 				job.setMapOutputValueClass(BytesWritable.class);
 				job.setReducerClass(OWLSameAsReducer.class);
-				
+		      			
 				job.waitForCompletion(true);
 				
 //				System.out.println("In FilesOWLReasoner: " + job.getCounters().findCounter("synonyms", "replacements").getValue());
 				Counter cDerivedSynonyms = job.getCounters().findCounter("synonyms","replacements");
 				long currentStepDerived = cDerivedSynonyms.getValue();	// Added by WuGang 2015-01-30
-				derivedTriples += currentStepDerived;
-				derivedSynonyms = (currentStepDerived - previousStepDerived) > 0;	// Modified by WuGang 2015-01-30
+				derivedSynonyms = currentStepDerived > 0;	// Added by WuGang 2015-07-12
+//				derivedTriples += currentStepDerived;
+//				derivedSynonyms = (currentStepDerived - previousStepDerived) > 0;	// Modified by WuGang 2015-01-30
 				//derivedSynonyms = currentStepDerived > 0;				
-				previousStepDerived = currentStepDerived;	// Added by WuGang 2015-01-30
+//				previousStepDerived = currentStepDerived;	// Added by WuGang 2015-01-30
 			}
 			
 			//Filter the table.
@@ -344,11 +406,17 @@ public class OWLReasoner extends Configured implements Tool {
 						OWLReasoner.class,
 						"OWL reasoner: sampling more common resources", 
 						new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
+						new HashSet<Integer>(),		// Added by WuGang, 2015-07-12
+						step,							// not used here
 						numMapTasks,
-						numReduceTasks, true, false);		// input from cassandra, but output to hdfs
+						numReduceTasks, true, false, 9);		// input from cassandra, but output to hdfs
 				job.getConfiguration().setInt("reasoner.samplingPercentage", sampling); //Sampling at 10%
 				job.getConfiguration().setInt("reasoner.threshold", resourceThreshold); //Threshold resources
 
+				/*
+				 * output to hdfs
+				 */
+				
 				job.setMapperClass(OWLSampleResourcesMapper.class);
 				job.setMapOutputKeyClass(LongWritable.class);
 				job.setMapOutputValueClass(LongWritable.class);
@@ -361,7 +429,7 @@ public class OWLReasoner extends Configured implements Tool {
 			    SequenceFileOutputFormat.setOutputPath(job, commonResourcesPath);
 			    job.setOutputFormatClass(SequenceFileOutputFormat.class);
 			    SequenceFileOutputFormat.setOutputCompressionType(job, CompressionType.BLOCK);
-
+	    
 			    job.waitForCompletion(true);
 				
 			    
@@ -398,8 +466,10 @@ public class OWLReasoner extends Configured implements Tool {
 						OWLReasoner.class,
 						"OWL reasoner: replace triples using the sameAs synonyms: reconstruct triples", 
 						new HashSet<Integer>(),		//		FileUtils.FILTER_ONLY_HIDDEN.getClass(),
+						new HashSet<Integer>(),		// Added by WuGang, 2015-07-12
+						step,							// not used here
 						numMapTasks,
-						numReduceTasks, false, true);		// input from hdfs, but output to cassandra
+						numReduceTasks, false, true, 10);		// input from hdfs, but output to cassandra
 
 				SequenceFileInputFormat.addInputPath(job, tmpPath);
 				job.setInputFormatClass(SequenceFileInputFormat.class);
@@ -408,6 +478,7 @@ public class OWLReasoner extends Configured implements Tool {
 				job.setMapOutputKeyClass(BytesWritable.class);
 				job.setMapOutputValueClass(BytesWritable.class);
 				job.setReducerClass(OWLSameAsReconstructReducer.class);
+							
 				job.waitForCompletion(true);
 				
 				FileSystem fs = FileSystem.get(job.getConfiguration());
@@ -448,8 +519,10 @@ public class OWLReasoner extends Configured implements Tool {
 				OWLReasoner.class,
 				"OWL reasoner: infer equivalence from subclass and subprop. step " + step, 
 				filters,
+				new HashSet<Integer>(),		// Added by WuGang, 20150712
+				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true);		
+				numReduceTasks, true, true, 11);		
 		job.getConfiguration().setInt("maptasks", Math.max(job.getConfiguration().getInt("maptasks", 0) / 10, 1));
 		job.getConfiguration().setInt("reasoner.step", step);
 
@@ -457,7 +530,7 @@ public class OWLReasoner extends Configured implements Tool {
 		job.setMapOutputKeyClass(LongWritable.class);
 		job.setMapOutputValueClass(BytesWritable.class);
 		job.setReducerClass(OWLEquivalenceSCSPReducer.class);		
-		
+       	
 		job.waitForCompletion(true);
 		return job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter","REDUCE_OUTPUT_RECORDS").getValue();
 	}
@@ -469,6 +542,7 @@ public class OWLReasoner extends Configured implements Tool {
 		boolean derivedNewStatements = true;
 		long totalDerivation = 0;
 		int previousSomeAllValuesDerivation = -1;
+		boolean firstCycle = true;
 		
 		// Added by Wugang 20150111
 		//long countRule15 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_15);	// see OWLAllSomeValuesReducer
@@ -476,12 +550,15 @@ public class OWLReasoner extends Configured implements Tool {
 		
 		while (derivedNewStatements) {
 			step++;
+			
 			Job job = MapReduceReasonerJobConfig.createNewJob(
 					OWLReasoner.class,
 					"OWL reasoner: some and all values rule. step " + step, 
 					new HashSet<Integer>(),
+					new HashSet<Integer>(),
+					step,							// not used here
 					numMapTasks,
-					numReduceTasks, true, true);		
+					numReduceTasks, true, true, 12);		
 			job.getConfiguration().setInt("reasoner.step", step);
 			job.getConfiguration().setInt("reasoner.previousDerivation", previousSomeAllValuesDerivation);
 			previousSomeAllValuesDerivation = step;
@@ -490,7 +567,7 @@ public class OWLReasoner extends Configured implements Tool {
 			job.setMapOutputKeyClass(BytesWritable.class);
 			job.setMapOutputValueClass(BytesWritable.class);
 			job.setReducerClass(OWLAllSomeValuesReducer.class);
-			
+	       	
 			job.waitForCompletion(true);
 			
 			// Added by Wugang 20150111
@@ -498,7 +575,34 @@ public class OWLReasoner extends Configured implements Tool {
 		//	countRule16 = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_16) - countRule16;	// see OWLAllSomeValuesReducer
 		//	totalDerivation =  countRule15 +  countRule16;
 
-			derivedNewStatements = (totalDerivation > 0);
+			
+			Counter derivedTriples = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter","REDUCE_OUTPUT_RECORDS");
+			long notFilteredDerivation = derivedTriples.getValue();
+			long stepDerivation = 0;
+			if (firstCycle)
+				notFilteredDerivation -= previousSomeAllValuesCycleDerivation;
+			if (notFilteredDerivation > 0) {
+				previousSomeAllValuesCycleDerivation += notFilteredDerivation;
+				//Modified by LiYang 2015/9/21
+//				try {
+//					db.createIndexOnInferredSteps();
+//				} catch (TException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+				try {
+					db.createIndexOnInferredSteps();
+				} catch (TException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				stepDerivation = db.getRowCountAccordingInferredSteps(step - 1);
+				totalDerivation += stepDerivation;
+				derivedNewStatements = stepDerivation > 0;
+			} else {
+				derivedNewStatements = false;
+			}
+			firstCycle = false;
 		}
 		
 		// Added by Wugang 20150111
@@ -524,8 +628,10 @@ public class OWLReasoner extends Configured implements Tool {
 				OWLReasoner.class,
 				"OWL reasoner: hasValue rule. step " + step, 
 				new HashSet<Integer>(),
+				new HashSet<Integer>(),
+				step,							// not used here
 				numMapTasks,
-				numReduceTasks, true, true);		
+				numReduceTasks, true, true, 13);		
 		
 		long schemaOnPropertySize = db.getRowCountAccordingTripleType(TriplesUtils.SCHEMA_TRIPLE_ON_PROPERTY);
 		if (schemaOnPropertySize == 0)
@@ -547,7 +653,26 @@ public class OWLReasoner extends Configured implements Tool {
 		//	countRule14a = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14a) - countRule14a;	// see OWLAllSomeValuesReducer
 		//	countRule14b = db.getRowCountAccordingRule((int)TriplesUtils.OWL_HORST_14b) - countRule14b;	// see OWLAllSomeValuesReducer
 		//	return(countRule14a +  countRule14b);
-			return 0;
+			try {
+				db.createIndexOnInferredSteps();
+			} catch (InvalidRequestException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnavailableException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (TimedOutException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SchemaDisagreementException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (TException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			long stepDerivation = db.getRowCountAccordingInferredSteps(step - 1);
+			return stepDerivation;
 		} else {
 			return 0;
 		}

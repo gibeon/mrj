@@ -101,7 +101,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 	
 	public void sampleCommonResources(String[] args) throws Exception {
-//		System.out.println("ÔÚsampleCommonResourcesÈÎÎñÖĞ¡£");
+//		System.out.println("ï¿½ï¿½sampleCommonResourcesï¿½ï¿½ï¿½ï¿½ï¿½Ğ¡ï¿½");
 		Job job = createNewJob("Sample common resources");
 		
 	    //Input
@@ -127,7 +127,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 	
 	public void assignIdsToNodes(String[] args) throws Exception {
-//		System.out.println("ÔÚassignIdsToNodesÈÎÎñÖĞ¡£");
+//		System.out.println("ï¿½ï¿½assignIdsToNodesï¿½ï¿½ï¿½ï¿½ï¿½Ğ¡ï¿½");
 		
 		Job job = createNewJob("Deconstruct statements");
 		job.getConfiguration().setInt("mapred.job.reuse.jvm.num.tasks", -1);
@@ -156,7 +156,7 @@ public class FilesImportTriples extends Configured implements Tool {
 	}
 
 	private void rewriteTriples(String[] args) throws Exception {
-//		System.out.println("ÔÚrewriteTriplesÈÎÎñÖĞ¡£");
+//		System.out.println("ï¿½ï¿½rewriteTriplesï¿½ï¿½ï¿½ï¿½ï¿½Ğ¡ï¿½");
 		
 		Job job = createNewJob("Reconstruct statements");
 
@@ -188,9 +188,11 @@ public class FilesImportTriples extends Configured implements Tool {
         
         // is it useful below line?
         //job.getConfiguration().set(CASSANDRA_PRIMARY_KEY, "(sub, pre, obj)");
+        /*
+         * è¿™ä¸ªåœ°æ–¹è®¾ç½®æˆäº†0ï¼Œ mapé‚£ä¸ªåœ°æ–¹addçš„æ—¶å€™å°±åº”è¯¥å°‘åŠ ä¸€åˆ—å…ƒç´ ã€‚
+         */
         String query = "UPDATE " + CassandraDB.KEYSPACE + "." + CassandraDB.COLUMNFAMILY_JUSTIFICATIONS +
-        		" SET " + CassandraDB.COLUMN_INFERRED_STEPS + "=? ";
-
+        		" SET " + CassandraDB.COLUMN_TRANSITIVE_LEVELS + "= null" +  ","+ CassandraDB.COLUMN_INFERRED_STEPS + "=0";		
 	    
         CqlConfigHelper.setOutputCql(job.getConfiguration(), query);
         ConfigHelper.setOutputInitialAddress(job.getConfiguration(), cn.edu.neu.mitt.mrj.utils.Cassandraconf.host);
@@ -223,13 +225,21 @@ public class FilesImportTriples extends Configured implements Tool {
 		long time = System.currentTimeMillis();
 		int res = ToolRunner.run(new Configuration(), new FilesImportTriples(), args);
 //		log.info("Import time: " + (System.currentTimeMillis() - time));
-		
-		//Modified by LiYang	2015/4/10
-		CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
-		db.init();
-		db.createIndexOnTripleType();
-		db.createIndexOnRule();
-		db.CassandraDBClose();
+//		
+//		//Modified by LiYang	2015/4/10
+//		CassandraDB db = new CassandraDB(cn.edu.neu.mitt.mrj.utils.Cassandraconf.host, 9160);
+//		db.init();
+//		// Modified
+//		db.createIndexOnTripleType();
+//		//db.createIndexOnRule();
+//
+//		/*
+//		 * Add by LiYang
+//		 * 2015.7.19
+//		 */
+//		//db.createIndexOnInferredSteps();
+//		//db.createIndexOnTransitiveLevel();
+//		db.CassandraDBClose();
 		
 		System.out.println("Import time: " + (System.currentTimeMillis() - time));
 		System.exit(res);

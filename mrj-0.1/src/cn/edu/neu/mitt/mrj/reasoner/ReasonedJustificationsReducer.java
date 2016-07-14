@@ -12,8 +12,6 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
 
 public class ReasonedJustificationsReducer extends Reducer<Text, IntWritable, Map<String, ByteBuffer>, List<ByteBuffer>>{
@@ -21,7 +19,7 @@ public class ReasonedJustificationsReducer extends Reducer<Text, IntWritable, Ma
 		
 		for (IntWritable value : values) {
 			//Prepare the insert keys collection
-			String[] splitkeys = key.toString().split("-");
+			String[] splitkeys = key.toString().split("_");
 			Map<String, ByteBuffer> keys = new LinkedHashMap<String, ByteBuffer>();
 			keys.put(CassandraDB.COLUMN_SUB, ByteBufferUtil.bytes(Long.parseLong(splitkeys[0])));
 			keys.put(CassandraDB.COLUMN_PRE, ByteBufferUtil.bytes(Long.parseLong(splitkeys[1])));
@@ -36,8 +34,10 @@ public class ReasonedJustificationsReducer extends Reducer<Text, IntWritable, Ma
 			
 			//prepare the insert variables collection
 			List<ByteBuffer> variables = new ArrayList<ByteBuffer>();
-			int var = Integer.parseInt(value.toString());
-			variables.add(ByteBufferUtil.bytes(var));
+			int var_inferredsteps = Integer.parseInt(value.toString());
+			variables.add(ByteBufferUtil.bytes(var_inferredsteps));
+			int var_transitivelevel = Integer.parseInt(splitkeys[9]);
+			variables.add(ByteBufferUtil.bytes(var_transitivelevel));
 			context.write(keys, variables);
 		}
 

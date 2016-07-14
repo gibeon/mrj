@@ -21,6 +21,7 @@ import org.apache.hadoop.util.ReflectionUtils;
  * @author L
  *
  */
+
 public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VALUEOUT> {
 
 	private Map<String, TaskAttemptContext> taskContexts = new HashMap<String, TaskAttemptContext>();
@@ -81,15 +82,15 @@ public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VA
 			ConfigHelper.setOutputColumnFamily(taskContext.getConfiguration(), columnFamilyName);
 //			CqlConfigHelper.setOutputCql(taskContext.getConfiguration(), getCql(columnFamilyNameName));
 
-			CqlBulkOutputFormat.setColumnFamilySchema(
-					taskContext.getConfiguration(), 
-					columnFamilyName, 
-					getSchema(columnFamilyName));
-					
-			CqlBulkOutputFormat.setColumnFamilyInsertStatement(
-					taskContext.getConfiguration(), 
-					columnFamilyName, 
-					getInsertStatement(columnFamilyName));
+//			CqlBulkOutputFormat.setColumnFamilySchema(
+//					taskContext.getConfiguration(), 
+//					columnFamilyName, 
+//					getSchema(columnFamilyName));
+//					
+//			CqlBulkOutputFormat.setColumnFamilyInsertStatement(
+//					taskContext.getConfiguration(), 
+//					columnFamilyName, 
+//					getInsertStatement(columnFamilyName));
 			
 
 			
@@ -126,20 +127,20 @@ public class MrjMultioutput<KEYOUT, VALUEOUT> extends MultipleOutputs<KEYOUT, VA
 		return("UPDATE " + columnFamilyNameName + " SET transitivelevel =? ");
 	}
 	
-	String getSchema(String columnFamilyNameName){
-//		System.out.println(columnFamilyNameName + " schema");
-		if (columnFamilyNameName == "alltriples") {
-			return CassandraDB.getAlltripleSchema();
-		}
-		return CassandraDB.getStepsSchema(columnFamilyNameName);
-	}
-	
-	String getInsertStatement(String columnFamilyNameName){
-//		System.out.println(columnFamilyNameName + " insert statement");
-		if (columnFamilyNameName == "alltriples") {
-			return CassandraDB.getAlltripleStatement();
-		}
-		return CassandraDB.getStepsStatement(columnFamilyNameName);
-	}
+//	String getSchema(String columnFamilyNameName){
+////		System.out.println(columnFamilyNameName + " schema");
+//		if (columnFamilyNameName == "alltriples") {
+//			return CassandraDB.getAlltripleSchema();
+//		}
+//		return CassandraDB.getStepsSchema(columnFamilyNameName);
+//	}
+//	
+//	String getInsertStatement(String columnFamilyNameName){
+////		System.out.println(columnFamilyNameName + " insert statement");
+//		if (columnFamilyNameName == "alltriples") {
+//			return CassandraDB.getAlltripleStatement();
+//		}
+//		return CassandraDB.getStepsStatement(columnFamilyNameName);
+//	}
 	
 }
