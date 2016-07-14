@@ -44,8 +44,10 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 	public void reduce(LongWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
 
 		Iterator<BytesWritable> itr = values.iterator();
+		System.out.println("step 6");
 		while (itr.hasNext()) {
 			byte[] v = itr.next().getBytes();
+			System.out.println("step6 has values reduce");
 			if (v.length > 0) {
 				if (v[0] == 0) { //Rule 14b
 //					System.out.println("In OWLHasValueReducer for 14b: ");	// Added by Wugang
@@ -69,9 +71,8 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 									triple.setRsubject(object);							// v
 									triple.setRpredicate(TriplesUtils.OWL_HAS_VALUE);	// owl:hasValue
 									triple.setRobject(triple.getObject());				// w
-//									System.out.println("In OWLHasValueReducer for 14b output: "+triple);	// Added by Wugang
-									
-									CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+									System.out.println("In OWLHasValueReducer for 14b output: "+triple);	// Added by Wugang														
+									CassandraDB.writeJustificationToMapReduceContext(triple, source, context); 		
 //									context.write(source, triple);
 								}
 							}
@@ -97,11 +98,11 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 							triple.setType(TriplesUtils.OWL_HORST_14a);
 							triple.setRsubject(triple.getObject());				// v
 //							triple.setRpredicate(TriplesUtils.OWL_HAS_VALUE);	// owl:hasValue
-							triple.setRpredicate(predicate);					// p	// Modified by WuGang, 2010-08-26,Õâ¸öÐÅÏ¢ÓÃÓÚÖØÐÂ»Ö¸´ÓÃ
+							triple.setRpredicate(predicate);					// p	// Modified by WuGang, 2010-08-26,ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â»Ö¸ï¿½ï¿½ï¿½
 							triple.setRobject(object);							// w
 //							System.out.println("In OWLHasValueReducer for 14a output: "+triple);	// Added by Wugang
 							
-							CassandraDB.writeJustificationToMapReduceContext(triple, source, context);
+							CassandraDB.writeJustificationToMapReduceContext(triple, source, context); 		
 //							context.write(source, triple);
 						}
 					}
@@ -130,6 +131,7 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 			onPropertyFilter.add(TriplesUtils.SCHEMA_TRIPLE_ON_PROPERTY);
 			onPropertyMap = db.loadMapIntoMemory(onPropertyFilter);
 			onProperty2Map = db.loadMapIntoMemory(onPropertyFilter, true);
+			db.CassandraDBClose();
 		}catch (TTransportException e) {
 			e.printStackTrace();
 		} catch (InvalidRequestException e) {
@@ -143,5 +145,12 @@ public class OWLHasValueReducer extends Reducer<LongWritable, BytesWritable, Map
 		} catch (TException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	protected void cleanup(
+			Reducer<LongWritable, BytesWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		super.cleanup(context);
 	}
 }

@@ -13,6 +13,7 @@ import org.apache.hadoop.io.MapWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -392,6 +393,10 @@ public class OWLHorstJustificationMapper extends
 		}catch(TException te){
 			te.printStackTrace();
 		}
+	}
+	
+	protected void cleanup(Context context) throws IOException, InterruptedException{
+		db.CassandraDBClose();
 	}
 
 }

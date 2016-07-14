@@ -28,7 +28,9 @@ public class OWLTransitivityMapper extends Mapper<Long, Row, BytesWritable, Byte
 	int maxLevel = 0;
 	
 	public void map(Long key, Row row, Context context) throws IOException, InterruptedException {
-		int step = row.getInt(CassandraDB.COLUMN_INFERRED_STEPS);
+		//int step = row.getInt(CassandraDB.COLUMN_INFERRED_STEPS);
+		int level = row.getInt(CassandraDB.COLUMN_TRANSITIVE_LEVELS);	// Added by WuGang, 2015-07-15
+				
 		Triple value = CassandraDB.readJustificationFromMapReduceRow(row);
 		
 		byte derivation = TripleSource.TRANSITIVE_ENABLED;	// We now do transitive inference always!!!
@@ -36,7 +38,7 @@ public class OWLTransitivityMapper extends Mapper<Long, Row, BytesWritable, Byte
 		if (value.getSubject() != value.getObject()
 				&& !value.isObjectLiteral()) {
 		
-			if (step == minLevel || step == maxLevel) {
+			if (level == minLevel || level == maxLevel) {
 				NumberUtils.encodeLong(keys,0,value.getPredicate());
 				NumberUtils.encodeLong(keys,8,value.getObject());
 				oKey.set(keys, 0, 16);
@@ -46,7 +48,7 @@ public class OWLTransitivityMapper extends Mapper<Long, Row, BytesWritable, Byte
 				else
 					values[0] = 0;
 				
-				NumberUtils.encodeLong(values, 1, step);
+				NumberUtils.encodeLong(values, 1, level);
 				NumberUtils.encodeLong(values, 9, value.getSubject());
 				oValue.set(values, 0, 17);
 				
@@ -54,7 +56,7 @@ public class OWLTransitivityMapper extends Mapper<Long, Row, BytesWritable, Byte
 			}
 			
 			
-			if (step > minLevel) {
+			if (level > minLevel) {
 				NumberUtils.encodeLong(keys,0,value.getPredicate());
 				NumberUtils.encodeLong(keys,8,value.getSubject());
 				oKey.set(keys, 0, 16);
@@ -63,19 +65,20 @@ public class OWLTransitivityMapper extends Mapper<Long, Row, BytesWritable, Byte
 					values[0] = 3;
 				else
 					values[0] = 2;
-				NumberUtils.encodeLong(values, 1, step);
+				NumberUtils.encodeLong(values, 1, level);
 				NumberUtils.encodeLong(values, 9, value.getObject());
 				oValue.set(values, 0, 17);
 				
 				context.write(oKey, oValue);
 			}
 			
-			//¶ÔÓÚu p w, w p v×îÖÕÊä³öµÄkeyÊÇ(p, w),Êä³öµÄvalueÊÇ(value[0], key.getStep(), value.getObject)
+			//ï¿½ï¿½ï¿½ï¿½u p w, w p vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½keyï¿½ï¿½(p, w),ï¿½ï¿½ï¿½ï¿½ï¿½valueï¿½ï¿½(value[0], key.getStep(), value.getObject)
 		}
 	}
 
 	@Override
 	public void setup(Context context) {
+
 		level = context.getConfiguration().getInt("reasoning.transitivityLevel", 0);
 		baseLevel = context.getConfiguration().getInt("reasoning.baseLevel", 0) - 1;
 		minLevel = Math.max(1, (int)Math.pow(2,level - 2)) + baseLevel;

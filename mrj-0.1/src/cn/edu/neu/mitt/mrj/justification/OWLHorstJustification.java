@@ -2,16 +2,21 @@
  * Project Name: mrj-0.1
  * File Name: OWLHorstJustification.java
  * @author Gang Wu
- * 2015Äê2ÔÂ5ÈÕ ÏÂÎç4:58:08
+ * 2015ï¿½ï¿½2ï¿½ï¿½5ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½4:58:08
  * 
  * Description: 
  * TODO
  */
 package cn.edu.neu.mitt.mrj.justification;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Set;
+
+import jdk.internal.dynalink.beans.StaticClass;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -29,13 +34,23 @@ import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.omg.CORBA.PUBLIC_MEMBER;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.core.Context;
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.io.dbs.CassandraDB;
+import cn.edu.neu.mitt.mrj.reasoner.Experiments;
 import cn.edu.neu.mitt.mrj.utils.TripleKeyMapComparator;
 
+
+
+
+
+
+
+//modified  cassandra java 2.0.5
 import com.datastax.driver.core.TupleValue;
 
 /**
@@ -53,6 +68,12 @@ public class OWLHorstJustification extends Configured implements Tool {
 	public static long pre = -1;
 	public static long obj = -1;
 	public static Path justificationsDirBase = new Path("/justification");
+	
+	public static long totaltriples;
+	private static int tripleamount = 0;
+	public static int id;	 //??
+
+	private boolean bClearOriginals = false;
 
 	/**
 	 * 
@@ -79,6 +100,10 @@ public class OWLHorstJustification extends Configured implements Tool {
 				numMapTasks = Integer.valueOf(args[++i]);
 			if (args[i].equalsIgnoreCase("--reducetasks")) 
 				numReduceTasks = Integer.valueOf(args[++i]);
+
+			// Added by WuGang 2015-06-08
+			if (args[i].equalsIgnoreCase("--clearoriginals"))
+				bClearOriginals = true;
 		}
 	}
 
@@ -93,7 +118,7 @@ public class OWLHorstJustification extends Configured implements Tool {
 		Configuration conf = new Configuration();
 		try {
 			int step = 0;
-			Path justificationsDir = new Path(justificationsDirBase, String.valueOf(step)); // ¸ø¶¨Ä¿Â¼ÏÂ£¬Éú³ÉÒ»¸ö½ÐoriginalµÄÎÄ¼þÓÃÓÚ´æ´¢³õÊ¼´ýjustificationµÄtriple
+			Path justificationsDir = new Path(justificationsDirBase, String.valueOf(step)); // ï¿½ï¿½Ä¿Â¼ï¿½Â£ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½originalï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ú´æ´¢ï¿½ï¿½Ê¼ï¿½ï¿½justificationï¿½ï¿½triple
 			FileSystem fs = FileSystem.get(URI.create(justificationsDir.toString()), conf);
 			if (!fs.exists(justificationsDir)) {
 				SequenceFile.Writer writer = SequenceFile.createWriter(fs,
@@ -115,6 +140,9 @@ public class OWLHorstJustification extends Configured implements Tool {
 		// Job
 		Configuration conf = new JobConf();
 		conf.setInt("maptasks", numMapTasks);
+
+		conf.setInt("id", id);
+		
 		Job job = new Job(conf);
 		job.setJobName("OWL Horst Justification - Step " + step);
 		job.setJarByClass(OWLHorstJustification.class);
@@ -142,61 +170,114 @@ public class OWLHorstJustification extends Configured implements Tool {
 	    job.setOutputKeyClass(Triple.class);					// reduce output key (in next loop it will be tried to expanded)
 	    job.setOutputValueClass(MapWritable.class);				// reduce output value is an explanation
 	    job.setOutputFormatClass(SequenceFileOutputFormat.class);
-
 		
+
 		return job;
 	}
 	
 
 	public long launchClosure(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+		parseArgs(args);
+		
+		// Added by WuGang 2015-06-08
+//		if (bClearOriginals)
+//			CassandraDB.removeOriginalTriples();
+
+		
 		long total = 0;			// Total justifications
 		long newExpanded = -1;	// count of explanations that expanded in this loop
 		long startTime = System.currentTimeMillis();
 		int step = 0;
 		
-		parseArgs(args);
+		id = Experiments.id + 200;
+		System.out.println("id : " + id);
+
+
 		prepareInput(sub, pre, obj, false);	// Default it is not a literal.
 		
+		File outputFile = new File("output");
+		outputFile.createNewFile();
+        BufferedWriter out = new BufferedWriter(new FileWriter(outputFile, true));  
+        
+//      out.write("id : " + id + "\r\n");
+//		System.out.println(sub + "       " + pre + "         " + obj);       
+        out.write("id : " + id + "\r\n");
+        out.write("sub : " + sub + "  pre :  " + pre + " obj :  " + obj + "\r\n");
+
+        
 		// find justifications
 		do{
 			log.info(">>>>>>>>>>>>>>>>>>>> Processing justification in step - " + step + " <<<<<<<<<<<<<<<<<<<<<<<<<");
+	        
+			out.write("step : " + step + "\r\n");
+
+//			out.write("total : " + totaltriples + "\r\n");
+						
 			Job job = createJustificationJob(step);
-			
+
 			job.waitForCompletion(true);
 			
+//			int Retotal = 0;
+//			Retotal = conf.getInt("id", 111);		
+			//éœ€è¦åœ¨ job.waitForCompletion(true); ä¹‹åŽã€‚
+	        Long result = job.getCounters().findCounter("Triples", "Triples").getValue();
+			out.write("Reduce triples : " + result + "\r\n");
+
+		
 			newExpanded = job.getCounters().findCounter("org.apache.hadoop.mapred.Task$Counter", "REDUCE_OUTPUT_RECORDS").getValue();
 
 			Counter counterToProcess = job.getCounters().findCounter("OWL Horst Justifications Job", "ExplanationOutputs");
 			total += counterToProcess.getValue();
 			
+
+			
 			step++;
 		}while (newExpanded > 0);
+		//modified  cassandra java 2.0.5
 		
 		CassandraDB db = null;
+
 		try{
-			db = new CassandraDB("localhost", 9160);
+			db = new CassandraDB();
 			db.getDBClient().set_keyspace(CassandraDB.KEYSPACE);
 			Set<Set<TupleValue>> justifications = db.getJustifications();
 			int count = 0; 
+
 			for (Set<TupleValue> justification : justifications){
-				System.out.println(">>>Justification - " + ++count + ":");
+//				int tripleamount = 0;
+//				System.out.println(">>>Justification - " + ++count + ":");
+//		        out.write(">>>Justification - " + ++count + ":" + "\r\n");
 				for(TupleValue triple : justification){
 					long sub = triple.getLong(0);
 					long pre = triple.getLong(1);
 					long obj = triple.getLong(2);
-					System.out.println("\t<" + sub + ", " + pre + ", " + obj + ">" + 
-							" - <" + db.idToLabel(sub) + ", " + db.idToLabel(pre) + ", " + db.idToLabel(obj) + ">");
+//					System.out.println("\t<" + sub + ", " + pre + ", " + obj + ">" + 
+//							" - <" + db.idToLabel(sub) + ", " + db.idToLabel(pre) + ", " + db.idToLabel(obj) + ">");
+//			        out.write("\t<" + sub + ", " + pre + ", " + obj + ">" + 
+//							" - <" + db.idToLabel(sub) + ", " + db.idToLabel(pre) + ", " + db.idToLabel(obj) + ">" + "\r\n");
+					tripleamount++;
 				}
+//				System.out.println(tripleamount);
+		        out.write("tripleamount : " + tripleamount + "\r\n");
 			}
+
+			db.CassandraDBClose();
+			
 		}catch(Exception e){
 			System.err.println(e.getMessage());
 		}
-
-		
-		
+			
 		System.out.println("Time (in seconds): " + (System.currentTimeMillis() - startTime) / 1000);
 		System.out.println("Number justifications: " + total);
 
+//		out.write("tripleamount : " + tripleamount + "\r\n");
+
+        out.write("Time (in seconds): " + (System.currentTimeMillis() - startTime) / 1000 + "\r\n");
+        out.write("Number justifications: " + total + "\r\n\r\n");
+        out.flush();
+        out.close(); 
+		
+		
 		return total;
 
 	}
@@ -214,7 +295,7 @@ public class OWLHorstJustification extends Configured implements Tool {
 	
 	public static void main(String[] args) {
 		if (args.length < 2) {
-			System.out.println("USAGE: OWLHorstJustification [DerivedTriples base path] [Justifications base path] [options]");
+			System.out.println("USAGE: OWLHorstJustification [options]");
 			return;
 		}
 

@@ -2,13 +2,17 @@ package cn.edu.neu.mitt.mrj.reasoner.rdfs;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat;
+import org.apache.cassandra.thrift.Cassandra.AsyncProcessor.system_add_column_family;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.SchemaDisagreementException;
 import org.apache.cassandra.thrift.TimedOutException;
@@ -20,6 +24,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.sun.corba.se.spi.ior.Writeable;
 
 import cn.edu.neu.mitt.mrj.data.Triple;
 import cn.edu.neu.mitt.mrj.data.TripleSource;
@@ -38,6 +44,12 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 
 	private Triple oTriple = new Triple();
 	private Triple oTriple2 = new Triple();
+	
+	private Map<String, ByteBuffer> keys = 	new LinkedHashMap<String, ByteBuffer>();
+	private Map<String, ByteBuffer> allkeys = 	new LinkedHashMap<String, ByteBuffer>();
+	private List<ByteBuffer> allvariables =  new ArrayList<ByteBuffer>();
+	private List<ByteBuffer> allTValues =  new ArrayList<ByteBuffer>();
+	private List<ByteBuffer> stepsValues =  new ArrayList<ByteBuffer>();
 
 	private void recursiveScanSubproperties(long value, Set<Long> set) {
 		Collection<Long> subprops = subpropSchemaTriples.get(value);
@@ -56,8 +68,8 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 	@Override
 	public void reduce(BytesWritable key, Iterable<LongWritable> values, Context context)
 											throws IOException, InterruptedException {
+
 		byte[] bKey = key.getBytes();
-		
 		switch(bKey[0]) {
 		case 2:
 		case 3:	// rdfs rule 7
@@ -67,11 +79,17 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 			propURIs.clear();
 			//filter the properties that are already present
 			Iterator<LongWritable> itr = values.iterator();
+			/*
+			 * values在使用iterator之后会将值清空，使用list记录values
+			 */
+			List<Long> list1 = new ArrayList<Long>();
 			while (itr.hasNext()) {
 				long value = itr.next().get();
+				list1.add(value);
 				if (!propURIs.contains(value)) {
 					recursiveScanSubproperties(value, propURIs);
 				}
+				
 			}
 			
 			Iterator<Long> itr3 = propURIs.iterator();
@@ -90,10 +108,9 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 			// Modified by WuGang, 2010-08-26
 			while (itr3.hasNext()) {
 				oTriple.setPredicate(itr3.next());				
-				for (LongWritable pre : values) {
-					oTriple.setRpredicate(pre.get());
-					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);
-//					context.write(source, oTriple);
+				for (Long pre : list1) {
+					oTriple.setRpredicate(pre);
+					context.getCounter("RDFS derived triples", "subproperty of member").increment(1);
 				}
 			}
 
@@ -105,8 +122,10 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 			propURIs.clear();
 			//filter the properties that are already present
 			Iterator<LongWritable> itr2 = values.iterator();
+			List<Long> list2 = new ArrayList<Long>();
 			while (itr2.hasNext()) {
 				long value = itr2.next().get();
+				list2.add(value);
 				if (!propURIs.contains(value)) {
 					recursiveScanSubproperties(value, propURIs);
 				}
@@ -125,13 +144,15 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 //				context.write(source, oTriple);
 //			}
 			// Modified by WuGang, 2010-08-26
+
 			while (itr4.hasNext()) {
 				oTriple.setObject(itr4.next());
-				for(LongWritable obj:values){
-					oTriple.setRobject(obj.get());
-					CassandraDB.writeJustificationToMapReduceContext(oTriple, source, context);					
+				for(Long obj:list2){
+					oTriple.setRobject(obj);
+					context.getCounter("RDFS derived triples", "subproperty of member").increment(1);
 //					context.write(source, oTriple);
 				}
+
 			}
 
 			context.getCounter("RDFS derived triples", "subprop transitivity rule").increment(propURIs.size());
@@ -140,6 +161,7 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 		default: 
 			break;
 		}
+		
 	}
 
 	@Override
@@ -154,6 +176,7 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
 				subpropSchemaTriples = db.loadMapIntoMemory(filters);
 //				subpropSchemaTriples = FilesTriplesReader.loadMapIntoMemory("FILTER_ONLY_SUBPROP_SCHEMA", context);
+				db.CassandraDBClose();
 			} catch (TTransportException e) {
 				e.printStackTrace();
 			} catch (InvalidRequestException e) {
@@ -175,6 +198,22 @@ public class RDFSSubpropInheritReducer extends Reducer<BytesWritable, LongWritab
 		source.setStep(context.getConfiguration().getInt("reasoner.step", 0));
 
 		oTriple2.setPredicate(TriplesUtils.RDF_TYPE);
-		oTriple2.setObjectLiteral(false);
+		oTriple2.setObjectLiteral(false);		
+
+		
 	}
+
+	@Override
+	protected void cleanup(
+			Reducer<BytesWritable, LongWritable, Map<String, ByteBuffer>, List<ByteBuffer>>.Context context)
+			throws IOException, InterruptedException {
+		/*
+		 * 不写close就会写不进数据库。
+		 */
+
+		super.cleanup(context);
+	}
+	
+	
+	
 }

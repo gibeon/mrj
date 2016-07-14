@@ -85,7 +85,7 @@ public class OWLEquivalenceSCSPMapper extends Mapper<Long, Row, LongWritable, By
 	
 	@Override
 	public void setup(Context context) throws IOException {
-		
+
 		CassandraDB db;
 		try {
 			db = new CassandraDB();
@@ -94,6 +94,7 @@ public class OWLEquivalenceSCSPMapper extends Mapper<Long, Row, LongWritable, By
 				subpropSchemaTriples = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBPROPERTY);
+				//modified 2015/5/31
 				db.loadSetIntoMemory(subpropSchemaTriples, filters, -1);
 			}
 			
@@ -101,18 +102,21 @@ public class OWLEquivalenceSCSPMapper extends Mapper<Long, Row, LongWritable, By
 				subclassSchemaTriples = new HashSet<Long>();
 				Set<Integer> filters = new HashSet<Integer>();
 				filters.add(TriplesUtils.SCHEMA_TRIPLE_SUBCLASS);
+				//modified 2015/5/31
 				db.loadSetIntoMemory(subclassSchemaTriples, filters, -1);
 			}
-		} catch (TTransportException e) {
-			e.printStackTrace();
-		} catch (InvalidRequestException e) {
-			e.printStackTrace();
-		} catch (UnavailableException e) {
-			e.printStackTrace();
-		} catch (TimedOutException e) {
-			e.printStackTrace();
-		} catch (SchemaDisagreementException e) {
-			e.printStackTrace();
+			db.CassandraDBClose();
+			//modified 2015/5/31
+//		} catch (TTransportException e) {
+//			e.printStackTrace();
+//		} catch (InvalidRequestException e) {
+//			e.printStackTrace();
+//		} catch (UnavailableException e) {
+//			e.printStackTrace();
+//		} catch (TimedOutException e) {
+//			e.printStackTrace();
+//		} catch (SchemaDisagreementException e) {
+//			e.printStackTrace();
 		} catch (TException e) {
 			e.printStackTrace();
 		}
@@ -120,4 +124,5 @@ public class OWLEquivalenceSCSPMapper extends Mapper<Long, Row, LongWritable, By
 
 
 	}
+	
 }
